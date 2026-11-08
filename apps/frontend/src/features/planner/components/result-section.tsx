@@ -1,6 +1,6 @@
 import { ArrowClockwise, ArrowCounterClockwise, BookmarkSimple, Check, Copy, DownloadSimple, FileText, GlobeSimple, Info, Plus, Printer, Sun } from '@phosphor-icons/react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { Category, Day, Stop } from '@triptinker/contracts';
 import { ShimmerLabel } from '@/components/ai/shimmer';
@@ -219,6 +219,7 @@ function onTabKeys(event: KeyboardEvent<HTMLElement>, ids: string[], current: st
 }
 
 export function ResultSection(props: Props) {
+  const reduce = useReducedMotion();
   const { trip, sceneSrc, activeDayId, onActiveDay, review, locked, highlight } = props;
   const marked = review ?? highlight ?? null;
   const { itinerary } = trip;
@@ -409,9 +410,9 @@ export function ResultSection(props: Props) {
               {currentStop ? (
                 <motion.div
                   key={currentStop.id}
-                  initial={{ opacity: 0, filter: 'blur(8px)' }}
-                  animate={{ opacity: 1, filter: 'blur(0px)' }}
-                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  initial={reduce ? false : { opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: reduce ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
                   className="sticky top-24"
                 >
                   <WindowFrame

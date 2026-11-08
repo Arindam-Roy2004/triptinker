@@ -35,8 +35,8 @@ export function StopDetail({ stop, index, count, dayId, days, destination, onMov
   const meta = CATEGORY_META[stop.category];
   const duration = formatDuration(stop.durationMinutes);
   return (
-    <div role={compact ? undefined : 'region'} aria-label={compact ? undefined : 'Stop details'} className={cn('flex flex-col', !compact && 'max-h-[min(34rem,calc(100dvh-10rem))]')}>
-      <div className={cn('flex min-h-0 flex-col gap-4', !compact && 'overflow-y-auto overscroll-contain p-5 [scrollbar-width:thin]')}>
+    <div role={compact ? undefined : 'region'} aria-label={compact ? undefined : 'Stop details'} className={cn('flex flex-col', !compact && 'max-h-[min(30rem,calc(100dvh-12rem))]')}>
+      <div className={cn('flex min-h-0 flex-col gap-4', !compact && 'pane-scroll overflow-y-auto p-5')}>
         {!compact && (
           <header className="flex flex-col gap-2.5">
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2 text-[12px] leading-5">
@@ -54,9 +54,9 @@ export function StopDetail({ stop, index, count, dayId, days, destination, onMov
           </p>
         )}
         {stop.tip && (
-          <aside aria-label="Travel tip" className="rounded-lg border border-line bg-sunken/55 px-3.5 py-3">
+          <aside aria-label="Travel tip" className="w-fit max-w-full self-start rounded-lg border border-line bg-sunken/55 px-3.5 py-3">
             <p className="flex items-center gap-1.5 text-[11px] font-medium text-brand"><Lightbulb size={13} aria-hidden />Good to know</p>
-            <p className="mt-1.5 text-[13px] leading-[21px] text-muted">{stop.tip}</p>
+            <p className="mt-1.5 text-[13px] leading-[21px] break-words text-muted">{stop.tip}</p>
           </aside>
         )}
       </div>
