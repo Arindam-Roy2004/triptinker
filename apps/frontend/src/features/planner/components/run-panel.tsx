@@ -3,7 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Shimmer } from '@/components/ai/shimmer';
 import { SpinnerRing } from '@/components/ui/spinner-ring';
-import { formatElapsed, pad2 } from '@/lib/format';
+import { formatElapsed, formatTime, pad2 } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { livePlan, type LivePlan } from '../partial-json';
 import type { GenerationState } from '../use-generation';
@@ -289,7 +289,7 @@ const enter = { initial: { opacity: 0, y: 6, filter: 'blur(4px)' }, animate: { o
 
 function GhostRow({ width }: { width: string }) {
   return (
-    <li className="grid grid-cols-[3.25rem_minmax(0,1fr)] items-center gap-2 py-1.5 pl-3" aria-hidden>
+    <li className="grid grid-cols-[5rem_minmax(0,1fr)] items-center gap-2 py-1.5 pl-3" aria-hidden>
       <span className="skeleton h-2.5 w-9" />
       <span className="skeleton h-2.5" style={{ width }} />
     </li>
@@ -328,8 +328,8 @@ function LivePreview({ plan, writing }: { plan: LivePlan | null; writing: boolea
               </p>
               <ul className="mt-2 flex flex-col border-l border-line">
                 {day.stops.map((stop, j) => (
-                  <motion.li key={j} {...motionProps} className="grid grid-cols-[3.25rem_minmax(0,1fr)] gap-2 py-1 pl-3 text-[13px]">
-                    <span className="label tabular pt-px text-[11px] text-muted">{stop.time ?? 'Any'}</span>
+                  <motion.li key={j} {...motionProps} className="grid grid-cols-[5rem_minmax(0,1fr)] gap-2 py-1 pl-3 text-[13px]">
+                    <span className="label tabular pt-px text-[11px] whitespace-nowrap text-muted">{formatTime(stop.time) ?? 'Any'}</span>
                     <span className="truncate text-ink">
                       {stop.title}
                       {writing && lastDay && j === day.stops.length - 1 && <span className="ml-0.5 inline-block h-3 w-[6px] animate-caret bg-brand align-[-1px]" aria-hidden />}

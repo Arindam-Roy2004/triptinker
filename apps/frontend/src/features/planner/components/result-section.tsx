@@ -10,7 +10,7 @@ import { PixelButton } from '@/components/ui/pixel-button';
 import { PulseLine, WordsIn } from '@/components/ui/pulse-line';
 import { Reveal } from '@/components/ui/reveal';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { formatDuration, pad2 } from '@/lib/format';
+import { formatDuration, formatTime, pad2 } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { CATEGORY_META } from '../categories';
 import type { ReviewMarks } from '../diff';
@@ -123,8 +123,8 @@ function DayGlance({ day }: { day: Day }) {
       {first && (
         <span className="tabular">
           <span className="label mr-1.5 text-[11px] text-subtle">Time</span>
-          {first}
-          {end && end !== first && ` – ${end}`}
+          {formatTime(first)}
+          {end && end !== first && ` – ${formatTime(end)}`}
         </span>
       )}
       {minutes > 0 && (

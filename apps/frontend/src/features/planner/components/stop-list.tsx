@@ -5,7 +5,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { CaretDown, DotsSixVertical } from '@phosphor-icons/react';
 import { AnimatePresence, motion } from 'motion/react';
 import type { Day, Stop } from '@triptinker/contracts';
-import { formatDuration } from '@/lib/format';
+import { formatDuration, formatTime } from '@/lib/format';
 import { PixelFill } from '@/components/ui/pixel-fill';
 import { useMoreBelow } from '@/hooks/use-more-below';
 import { cn } from '@/lib/utils';
@@ -163,9 +163,9 @@ function Row({
           onClick={onSelect}
           aria-expanded={inline ? expanded : undefined}
           aria-current={!inline && selected ? 'true' : undefined}
-          className="relative grid min-w-0 flex-1 grid-cols-[3.25rem_minmax(0,1fr)_auto] items-start gap-x-3 py-4 pl-6 text-left focus-visible:outline-none"
+          className="relative grid min-w-0 flex-1 grid-cols-[5rem_minmax(0,1fr)_auto] items-start gap-x-3 py-4 pl-6 text-left focus-visible:outline-none"
         >
-          <span className="label tabular pt-0.5 text-[12px] text-muted">{stop.time ?? 'Any'}</span>
+          <span className="label tabular pt-0.5 text-[12px] whitespace-nowrap text-muted">{formatTime(stop.time) ?? 'Any'}</span>
           <span className="min-w-0">
             <span className="block text-[15px] leading-[21px] font-medium text-pretty text-ink">
               {stop.title}

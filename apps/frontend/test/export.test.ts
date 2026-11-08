@@ -5,6 +5,20 @@ import { appendSpoken } from '@/features/planner/use-voice-input';
 import { encodeWav } from '@/lib/wav';
 
 describe('trip export', () => {
+  it.each([
+    ['00:00', '12:00 AM'],
+    ['08:30', '8:30 AM'],
+    ['12:00', '12:00 PM'],
+    ['15:45', '3:45 PM'],
+    ['23:59', '11:59 PM'],
+  ])('shows %s as %s in text and printable exports', (time, display) => {
+    const itinerary = sample();
+    itinerary.days[0].stops[0].time = time;
+    expect(tripAsText(itinerary)).toContain(`${display}  ${itinerary.days[0].stops[0].title}`);
+    expect(tripAsPrintableHtml(itinerary)).toContain(`<span class="time">${display}</span>`);
+    expect(itinerary.days[0].stops[0].time).toBe(time);
+  });
+
   it('writes every day and stop as readable text with map links', () => {
     const itinerary = sample();
     const text = tripAsText(itinerary);

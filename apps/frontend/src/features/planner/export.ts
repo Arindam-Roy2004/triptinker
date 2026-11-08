@@ -1,5 +1,5 @@
 import type { Itinerary, Stop } from '@triptinker/contracts';
-import { formatDuration, mapsSearchUrl } from '@/lib/format';
+import { formatDuration, formatTime, mapsSearchUrl } from '@/lib/format';
 import { CATEGORY_META } from './categories';
 
 /**
@@ -19,7 +19,7 @@ export function tripAsText(itinerary: Itinerary): string {
     lines.push('', '', `DAY ${i + 1} · ${day.title}`);
     if (day.summary) lines.push(day.summary);
     for (const stop of day.stops) {
-      lines.push('', `${stop.time ?? '--:--'}  ${stop.title}`);
+      lines.push('', `${formatTime(stop.time) ?? 'Any time'}  ${stop.title}`);
       const meta = stopMeta(stop);
       if (meta) lines.push(`       ${meta}`);
       if (stop.description) lines.push(`       ${stop.description}`);
@@ -54,7 +54,7 @@ export function tripAsPrintableHtml(itinerary: Itinerary): string {
             .map(
               (stop) => `
         <li>
-          <span class="time">${escape(stop.time ?? '')}</span>
+          <span class="time">${escape(formatTime(stop.time) ?? '')}</span>
           <div>
             <h3>${escape(stop.title)}</h3>
             <p class="meta">${escape(stopMeta(stop))} · <a href="${escape(mapsSearchUrl(stop.title, itinerary.destination, stop.area))}">Map</a></p>
@@ -96,8 +96,8 @@ export function tripAsPrintableHtml(itinerary: Itinerary): string {
   section + section { border-top: 1px solid #ddd8d2; padding-top: 12pt; }
   ol, ul { margin: 6pt 0 0; padding: 0; }
   ol { list-style: none; }
-  ol li { display: grid; grid-template-columns: 42pt 1fr; gap: 8pt; padding: 6pt 0; break-inside: avoid; }
-  .time { font: 600 10pt/1.6 ui-monospace, Menlo, monospace; color: #57524c; }
+  ol li { display: grid; grid-template-columns: 58pt 1fr; gap: 8pt; padding: 6pt 0; break-inside: avoid; }
+  .time { font: 600 10pt/1.6 ui-monospace, Menlo, monospace; white-space: nowrap; color: #57524c; }
   .meta { font-size: 9pt; color: #77716a; }
   .tip { font-size: 9.5pt; color: #57524c; }
   a { color: #c4623f; }

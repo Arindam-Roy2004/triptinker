@@ -3,7 +3,7 @@ import type { Day, Stop } from '@triptinker/contracts';
 import { Button } from '@/components/ui/button';
 import { WordsIn } from '@/components/ui/pulse-line';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { formatDuration, mapsSearchUrl, pad2 } from '@/lib/format';
+import { formatDuration, formatTime, mapsSearchUrl, pad2 } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { CATEGORY_META } from '../categories';
 
@@ -39,7 +39,7 @@ export function StopDetail({ stop, index, count, dayId, days, destination, onMov
         {!compact && (
           <header className="flex flex-col gap-1.5">
             <p className="label flex flex-wrap items-center gap-x-2 text-[11px] text-muted">
-              <span className="tabular text-ink">{stop.time ?? 'Any time'}</span>
+              <span className="tabular text-ink">{formatTime(stop.time) ?? 'Any time'}</span>
               <span aria-hidden>·</span>
               <span style={{ color: meta.color }}>{meta.label}</span>
               {duration && (

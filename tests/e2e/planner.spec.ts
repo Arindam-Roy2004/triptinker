@@ -52,7 +52,7 @@ test('sample trip: inspect, remove with undo, reorder, save and reload', async (
   await page.getByRole('button', { name: 'Move later' }).first().click();
   const first = list.locator(':scope > li').first();
   await expect(first).toContainText('Miradouro da Senhora do Monte');
-  await expect(first).toContainText('08:30');
+  await expect(first).toContainText('8:30 AM');
 
   await page.getByRole('button', { name: 'Save trip' }).click();
   await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeVisible();

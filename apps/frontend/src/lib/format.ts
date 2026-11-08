@@ -1,3 +1,11 @@
+/** Display a local itinerary time without applying the browser's timezone. */
+export function formatTime(time: string | null): string | null {
+  if (!time || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time)) return null;
+  const [hour, minute] = time.split(':');
+  const h = Number(hour);
+  return `${h % 12 || 12}:${minute} ${h < 12 ? 'AM' : 'PM'}`;
+}
+
 export function formatDuration(minutes: number | null): string | null {
   if (!minutes) return null;
   const h = Math.floor(minutes / 60);
