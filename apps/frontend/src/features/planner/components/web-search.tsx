@@ -32,6 +32,41 @@ function SiteMark({ domain, className }: { domain: string; className?: string })
   );
 }
 
+const SITE_NAMES: Record<string, string> = {
+  'en.wikipedia.org': 'Wikipedia', 'wikivoyage.org': 'Wikivoyage', 'en.wikivoyage.org': 'Wikivoyage',
+  'lonelyplanet.com': 'Lonely Planet', 'tripadvisor.com': 'Tripadvisor', 'cntraveler.com': 'Condé Nast',
+  'roughguides.com': 'Rough Guides', 'afar.com': 'AFAR', 'timeout.com': 'Time Out',
+};
+
+/** Named source chips keep the research readable without opening another panel. */
+function SourceChips({ sources }: { sources: WebSource[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const id = useId();
+  const reduce = useReducedMotion();
+  const visible = expanded ? sources : sources.slice(0, 4);
+  return (
+    <div id={id} role="group" aria-label="Source websites" className="flex flex-wrap items-center gap-1.5">
+      {visible.map((source, i) => (
+        <Tooltip key={source.url}>
+          <TooltipTrigger asChild>
+            <motion.a href={source.url} target="_blank" rel="noopener noreferrer" aria-label={`${source.title} — ${source.domain}`}
+              initial={reduce ? false : { opacity: 0, y: 3 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, delay: Math.min(i, 4) * 0.035 }}
+              className="inline-flex min-h-7 max-w-full items-center gap-1.5 rounded-md border border-line bg-surface px-2 py-1 text-[11px] leading-4 text-muted shadow-[0_1px_1px_rgb(0_0_0/0.025)] transition-colors hover:border-line-strong hover:bg-sunken hover:text-ink focus-visible:outline-2 focus-visible:outline-brand">
+              <SiteMark domain={source.domain} className="size-4 rounded-[3px] border-0 shadow-none" />
+              <span className="max-w-40 truncate">{SITE_NAMES[source.domain.replace(/^www\./, '')] ?? source.domain.replace(/^www\./, '')}</span>
+            </motion.a>
+          </TooltipTrigger>
+          <TooltipContent side="top" sideOffset={6} className="max-w-64 bg-ink text-surface">
+            <span className="block font-medium">{source.title}</span>
+            <span className="mt-0.5 block text-[11px] opacity-70">{source.domain}</span>
+          </TooltipContent>
+        </Tooltip>
+      ))}
+      {sources.length > 4 && <button type="button" aria-expanded={expanded} aria-controls={id} onClick={() => setExpanded(!expanded)} className="min-h-7 rounded-md border border-line px-2 py-1 text-[11px] leading-4 text-subtle transition-colors hover:bg-sunken hover:text-ink focus-visible:outline-2 focus-visible:outline-brand">{expanded ? 'Show less' : `+${sources.length - 4} more`}</button>}
+    </div>
+  );
+}
+
 /** Compact source marks, each a real link; the disclosure opens the full titles and domains. */
 export function SourceStack({ sources, label = 'Sources' }: { sources: WebSource[]; label?: string }) {
   const [open, setOpen] = useState(false);
@@ -134,7 +169,7 @@ export function WebSearch({ query, sources, searching, elapsed }: { query: strin
               <motion.div key="sources" {...reveal} className="overflow-hidden">
                 <div className="relative ml-1.5 pt-1 pb-0.5 pl-4">
                   <span aria-hidden className="absolute top-0 left-0 h-5 w-2.5 rounded-bl-lg border-b border-l border-line" />
-                  <SourceStack sources={found} />
+                  <SourceChips sources={found} />
                 </div>
               </motion.div>
             )}

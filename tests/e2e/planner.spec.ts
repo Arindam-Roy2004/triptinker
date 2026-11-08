@@ -71,6 +71,11 @@ test('previews the plan as it streams, then renders only the validated plan', as
   // The preview fills in from the partial JSON: the title shows up before the run is done.
   const panel = page.getByRole('region', { name: 'Generation progress' });
   await expect(panel.getByText('Three slow days in Lisbon')).toBeVisible({ timeout: 15_000 });
+  await expect(panel.getByRole('list', { name: 'Stages' }).getByRole('listitem')).toHaveCount(4);
+  await panel.getByRole('button', { name: 'Hide trip tasks' }).click();
+  await expect(panel.getByRole('list', { name: 'Stages' })).toHaveCount(0);
+  await panel.getByRole('button', { name: 'Show trip tasks' }).click();
+  await expect(panel.getByRole('list', { name: 'Stages' }).getByRole('listitem')).toHaveCount(4);
   await panel.getByRole('tab', { name: 'JSON' }).click();
   await expect(panel.locator('pre').getByText('"status"')).toBeVisible();
   await expect(tripTitle(page)).toBeVisible({ timeout: 60_000 });

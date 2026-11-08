@@ -1,6 +1,5 @@
-import { ArrowClockwise, CalendarBlank, GlobeSimple, ShieldCheck, TextAlignLeft, type Icon } from '@phosphor-icons/react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { formatTime, pad2 } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { livePlan, type LivePlan } from '../partial-json';
@@ -9,17 +8,15 @@ import { highlightJson } from './json-highlight';
 import { WindowFrame } from './window-frame';
 import { WebSearch } from './web-search';
 import { ThinkingState } from './thinking-state';
+import { TaskList, type PlanningTask } from './task-list';
 
 type Running = Extract<GenerationState, { status: 'running' }>;
 type Status = 'done' | 'active' | 'todo';
-type Step = { id: string; icon: Icon; title: string; detail: string; status: Status; chips?: string[] };
+type Step = { id: string; title: string; detail: string; status: Status };
 
 const ease = [0.22, 1, 0.36, 1] as const;
 const TAIL = 7_000; // only the end of the stream is on screen, so only highlight the end
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
-
-/** Keep the latest day chips visible without letting a ten-day plan fill the panel. */
-const latest = (items: string[], max: number) => (items.length > max ? [`+${items.length - max} earlier`, ...items.slice(-max)] : items);
 
 /** The run as a short chain of steps, filled in from what has actually streamed so far. */
 function buildSteps(state: Running, plan: LivePlan | null): Step[] {
@@ -33,12 +30,11 @@ function buildSteps(state: Running, plan: LivePlan | null): Step[] {
   const days = plan?.days ?? [];
   const stops = days.reduce((n, d) => n + d.stops.length, 0);
   const list: Step[] = [
-    { id: 'read', icon: TextAlignLeft, title: refine ? 'Read your change' : 'Read your brief', detail: 'Destination, length and pace', status: status('read') },
+    { id: 'read', title: refine ? 'Read your change' : 'Read your brief', detail: 'Destination, length and pace', status: status('read') },
     ...(searched
       ? [
           {
             id: 'search',
-            icon: GlobeSimple,
             title: 'Search the web',
             detail: '',
             status: status('search'),
@@ -47,21 +43,15 @@ function buildSteps(state: Running, plan: LivePlan | null): Step[] {
       : []),
     {
       id: 'plan',
-      icon: CalendarBlank,
       title: refine ? 'Revise the plan' : 'Plan the days',
       detail: days.length ? `${plural(days.length, 'day')} · ${plural(stops, 'stop')} so far` : 'Choosing stops that fit your pace',
       status: state.stage === 'repairing' ? 'todo' : status('plan'),
-      chips: latest(
-        days.map((d, i) => (d.title ? `${pad2(i + 1)} · ${d.title}` : `Day ${pad2(i + 1)}`)),
-        3,
-      ),
     },
-    { id: 'check', icon: ShieldCheck, title: 'Check the plan', detail: 'Every day, stop and time is validated', status: status('check') },
+    { id: 'check', title: 'Check the plan', detail: 'Every day, stop and time is validated', status: status('check') },
   ];
   if (state.repairReason) {
     list.splice(1, 0, {
       id: 'repair',
-      icon: ArrowClockwise,
       title: 'Fix the first draft',
       detail: 'It came back incomplete, so it is being rewritten',
       status: state.stage === 'repairing' ? 'active' : 'done',
@@ -106,7 +96,11 @@ export function RunPanel({ state, onCancel }: { state: Running; onCancel: () => 
   const elapsed = useNow() - state.startedAt;
   const deferred = useDeferredValue(state.raw);
   const plan = useMemo(() => livePlan(deferred), [deferred]);
-  const steps = buildSteps(state, plan).filter((step) => step.status !== 'todo');
+  const steps = buildSteps(state, plan);
+  const searched = state.stage === 'searching' || state.sources !== null;
+  const tasks: PlanningTask[] = steps.map((step) => ({ id: step.id, label: step.title, status: step.status, detail: step.detail }));
+  const stopCount = plan?.days.reduce((n, day) => n + day.stops.length, 0) ?? 0;
+  const previewHeight = Math.min(420, Math.max(240, 100 + (plan?.days.length ?? 0) * 30 + stopCount * 27));
   const line = statusLine(state, plan, elapsed);
   const [view, setView] = useState<'preview' | 'json'>('preview');
   const root = useRef<HTMLElement>(null);
@@ -117,88 +111,21 @@ export function RunPanel({ state, onCancel }: { state: Running; onCancel: () => 
   }, [reduce]);
 
   return (
-    <section ref={root} aria-label="Generation progress" aria-busy="true" className="grid grid-cols-1 border-t border-line lg:h-[34rem] lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+    <section ref={root} aria-label="Generation progress" aria-busy="true" className="grid grid-cols-1 items-start gap-5 border-t border-line bg-surface p-4 sm:gap-6 sm:p-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
       <ThinkingState label={state.kind === 'refine' ? 'Revising' : 'Thinking'} detail={line.text} elapsed={elapsed} onStop={onCancel}>
-        {/* Chain of steps */}
-        <ol className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-6 pt-3 pb-6 [scrollbar-width:thin]" aria-label="Stages" aria-live="polite" aria-relevant="additions text">
-          <AnimatePresence initial={false}>
-            {steps.map((step, i) => step.id === 'search' ? (
-              <motion.li
-                key="search"
-                layout={!reduce}
-                initial={reduce ? false : { opacity: 0, height: 0, filter: 'blur(3px)' }}
-                animate={{ opacity: 1, height: 'auto', filter: 'blur(0px)' }}
-                transition={{ duration: 0.3, ease }}
-                aria-current={state.stage === 'searching' ? 'step' : undefined}
-                className="min-w-0"
-              >
-                <WebSearch query={state.searchQuery} sources={state.sources} searching={state.stage === 'searching'} elapsed={elapsed} />
-              </motion.li>
-            ) : (
-              <motion.li
-                key={step.id}
-                layout={!reduce}
-                initial={reduce ? false : { opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, ease }}
-                aria-current={step.status === 'active' ? 'step' : undefined}
-                className="relative grid grid-cols-[20px_minmax(0,1fr)] gap-x-3"
-              >
-                {i < steps.length - 1 && (
-                  <span aria-hidden className={cn('absolute top-[26px] -bottom-[18px] left-[9.5px] w-px transition-colors duration-500', step.status === 'done' ? 'bg-brand/40' : 'bg-line')} />
-                )}
-                <StepIcon status={step.status} icon={step.icon} reduce={!!reduce} />
-                <div className="min-w-0">
-                  <p className={cn('text-[14px] leading-5 font-medium transition-colors', step.status === 'active' ? 'text-ink' : step.status === 'done' ? 'text-muted' : 'text-subtle')}>
-                    {step.title}
-                  </p>
-                  <p className={cn('mt-0.5 text-[13px] leading-5', step.status === 'todo' ? 'text-subtle' : 'text-muted')}>{step.detail}</p>
-                  {!!step.chips?.length && (
-                    <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Days so far">
-                      <AnimatePresence initial={false}>
-                        {step.chips.map((chip) => (
-                          <motion.li
-                            key={chip}
-                            initial={reduce ? false : { opacity: 0, scale: 0.92, filter: 'blur(3px)' }}
-                            animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                            transition={{ duration: 0.28, ease }}
-                            className="max-w-full truncate rounded-full border border-line bg-surface px-2.5 py-0.5 text-[12px] leading-5 text-muted"
-                          >
-                            {chip}
-                          </motion.li>
-                        ))}
-                      </AnimatePresence>
-                    </ul>
-                  )}
-                </div>
-              </motion.li>
-            ))}
-          </AnimatePresence>
-        </ol>
+        {searched && <WebSearch query={state.searchQuery} sources={state.sources} searching={state.stage === 'searching'} elapsed={elapsed} />}
+        <TaskList tasks={tasks} />
       </ThinkingState>
 
       {/* Live preview / raw JSON */}
-      <div className="crosshatch p-4 sm:p-8 lg:min-h-0">
-        <WindowFrame title={view === 'preview' ? 'Live plan' : 'Trip data'} action={<ViewToggle value={view} onChange={setView} />} className="h-[360px] lg:h-full">
-          {view === 'preview' ? <LivePreview plan={plan} writing={state.stage === 'drafting' || state.stage === 'connecting'} /> : <RawJson raw={state.raw} />}
+      <div className="min-w-0">
+        <WindowFrame title={view === 'preview' ? 'Live plan' : 'Trip data'} action={<ViewToggle value={view} onChange={setView} />} className="rounded-xl border border-line shadow-none" bodyClassName="overflow-hidden">
+          <div className="h-[min(var(--preview-height),20rem)] transition-[height] duration-300 motion-reduce:transition-none sm:h-[var(--preview-height)]" style={{ '--preview-height': `${view === 'json' ? 360 : previewHeight}px` } as CSSProperties}>
+            {view === 'preview' ? <LivePreview plan={plan} writing={state.stage === 'drafting' || state.stage === 'connecting'} /> : <RawJson raw={state.raw} />}
+          </div>
         </WindowFrame>
       </div>
     </section>
-  );
-}
-
-/** Quiet icons for completed steps; a small pixel marks the work currently in progress. */
-function StepIcon({ status, icon: Icon, reduce }: { status: Status; icon: Icon; reduce: boolean }) {
-  return (
-    <span className="relative grid size-5 place-items-center bg-surface text-subtle" aria-hidden>
-      {status === 'active' ? (
-        <motion.span
-          className="size-1.5 rounded-[1px] bg-brand"
-          animate={reduce ? undefined : { opacity: [0.35, 1, 0.35] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-        />
-      ) : <Icon size={15} />}
-    </span>
   );
 }
 

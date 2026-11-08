@@ -33,8 +33,8 @@ export function ThinkingState({ label, detail, elapsed, onStop, children }: { la
   const time = seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
 
   return (
-    <div className="flex min-h-0 flex-col bg-surface lg:border-r lg:border-line">
-      <div className="flex items-start gap-4 px-6 pt-6 pb-3">
+    <div className="flex min-w-0 flex-col">
+      <div className="flex items-start gap-3 pb-4">
         <div className="min-w-0 flex-1">
           <button
             type="button"
@@ -62,7 +62,7 @@ export function ThinkingState({ label, detail, elapsed, onStop, children }: { la
             animate={{ height: 'auto', opacity: 1 }}
             exit={reduce ? undefined : { height: 0, opacity: 0 }}
             transition={{ duration: 0.25, ease }}
-            className="flex min-h-0 flex-1 flex-col overflow-hidden"
+            className="flex min-h-0 flex-col gap-4 overflow-hidden"
           >
             {children}
           </motion.div>
