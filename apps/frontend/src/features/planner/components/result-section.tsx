@@ -1,4 +1,5 @@
-import { ArrowClockwise, ArrowCounterClockwise, ArrowUpRight, BookmarkSimple, Check, DownloadSimple, GlobeSimple, Info, Plus, Sun } from '@phosphor-icons/react';
+import { ArrowClockwise, ArrowCounterClockwise, ArrowUpRight, BookmarkSimple, Check, Copy, DownloadSimple, FileText, GlobeSimple, Info, Plus, Printer, Sun } from '@phosphor-icons/react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { motion } from 'motion/react';
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { Category, Day, Stop } from '@triptinker/contracts';
@@ -46,7 +47,8 @@ type Props = {
   onUndo: () => void;
   onRedo: () => void;
   onSave: () => void;
-  onExport: () => void;
+  /** Take the trip out of the app: print / save as PDF, a text file, or copied text. */
+  onExport: (format: ExportFormat) => void;
   onReorder: (dayId: string, from: number, to: number) => void;
   actionsFor: (dayId: string, stop: Stop, index: number) => StopActions;
   /** A proposed change being reviewed: `trip` is then the proposal, and these mark what changed. */
@@ -163,6 +165,48 @@ function IconButton({ label, shortcut, onClick, disabled, children }: { label: s
   );
 }
 
+export type ExportFormat = 'pdf' | 'text' | 'copy';
+
+function DownloadMenu({ onExport }: { onExport: (format: ExportFormat) => void }) {
+  return (
+    <DropdownMenu>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DropdownMenuTrigger asChild>
+            <Button size="icon" variant="secondary" aria-label="Download trip">
+              <DownloadSimple />
+            </Button>
+          </DropdownMenuTrigger>
+        </TooltipTrigger>
+        <TooltipContent>Download trip</TooltipContent>
+      </Tooltip>
+      <DropdownMenuContent align="end" sideOffset={8} className="w-60">
+        <DropdownMenuItem onSelect={() => onExport('pdf')} className="items-start py-2">
+          <Printer className="mt-0.5" />
+          <span className="flex flex-col">
+            <span>Save as PDF or print</span>
+            <span className="text-[12px] text-muted">Day-by-day pages with map links</span>
+          </span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onExport('text')} className="items-start py-2">
+          <FileText className="mt-0.5" />
+          <span className="flex flex-col">
+            <span>Download as text</span>
+            <span className="text-[12px] text-muted">Opens in any notes app, offline</span>
+          </span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onExport('copy')} className="items-start py-2">
+          <Copy className="mt-0.5" />
+          <span className="flex flex-col">
+            <span>Copy to clipboard</span>
+            <span className="text-[12px] text-muted">Paste into a chat or email</span>
+          </span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 /** Arrow-key navigation for a row of tabs (WAI-ARIA tabs pattern). */
 function onTabKeys(event: KeyboardEvent<HTMLElement>, ids: string[], current: string, select: (id: string) => void) {
   const i = ids.indexOf(current);
@@ -234,9 +278,7 @@ export function ResultSection(props: Props) {
           <IconButton label="Redo" shortcut="⇧⌘Z" onClick={props.onRedo} disabled={locked || !props.canRedo}>
             <ArrowClockwise />
           </IconButton>
-          <IconButton label="Download trip" onClick={props.onExport}>
-            <DownloadSimple />
-          </IconButton>
+          <DownloadMenu onExport={props.onExport} />
           <PixelButton variant={props.saved ? 'secondary' : 'primary'} onClick={props.onSave} disabled={locked || props.saved}>
             {props.saved ? <Check /> : <BookmarkSimple />} {props.saved ? 'Saved' : 'Save trip'}
           </PixelButton>

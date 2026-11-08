@@ -19,10 +19,11 @@ import { FailureLab } from './components/failure-lab';
 import { LibraryMenu } from './components/library-menu';
 import { PromptCard } from './components/prompt-card';
 import { RefineBar, type PendingRefinement } from './components/refine-bar';
-import { ResultSection } from './components/result-section';
+import { ResultSection, type ExportFormat } from './components/result-section';
 import { RunPanel } from './components/run-panel';
 import { FeatureCells, ProblemCell } from './components/strip-cells';
 import { diffItineraries, reviewMarks } from './diff';
+import { downloadText, printTrip, tripAsText } from './export';
 import { findStop, moveStop, moveStopToDay, removeStop, restoreStop } from './operations';
 import { tripSchema, useTripStore, type Trip } from './trip-store';
 import { useGeneration } from './use-generation';
@@ -52,12 +53,13 @@ function restoreWorkspace() {
   return { trip: saved?.trip ?? null, form: saved ? { ...EMPTY_FORM, ...saved.form } : EMPTY_FORM };
 }
 
-function download(trip: Trip) {
-  const blob = new Blob([JSON.stringify(trip.itinerary, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const name = trip.itinerary.destination.split(',')[0].trim().toLowerCase().replace(/\W+/g, '-') || 'trip';
-  Object.assign(document.createElement('a'), { href: url, download: `${name}.json` }).click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+function exportTrip(trip: Trip, format: ExportFormat) {
+  const { itinerary } = trip;
+  if (format === 'pdf') return printTrip(itinerary);
+  if (format === 'text') return downloadText(itinerary);
+  const failed = () => toast.error('Could not copy', { description: 'Use “Download as text” instead.' });
+  if (!navigator.clipboard) return failed();
+  navigator.clipboard.writeText(tripAsText(itinerary)).then(() => toast.success('Trip copied', { description: 'Paste it into a chat, email or notes app.' }), failed);
 }
 
 const scrollTo = (id: string) => requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -226,7 +228,7 @@ export function PlannerPage() {
   const save = () => {
     if (!trip) return;
     if (library.save(trip)) toast.success('Trip saved');
-    else toast.error('Could not save trip', { description: 'Download your trip to keep a copy.' });
+    else toast.error('Could not save trip', { description: 'Download your trip as a PDF or text file to keep a copy.' });
   };
 
   const remove = (stopId: string) => {
@@ -419,7 +421,7 @@ export function PlannerPage() {
                 onUndo={store.undo}
                 onRedo={store.redo}
                 onSave={save}
-                onExport={() => download(trip)}
+                onExport={(format) => exportTrip(trip, format)}
                 onReorder={(dayId, from, to) => store.edit((it) => moveStop(it, dayId, from, to))}
                 actionsFor={(dayId, stop, index) => ({
                   onMove: (to) => store.edit((it) => moveStop(it, dayId, index, to)),
