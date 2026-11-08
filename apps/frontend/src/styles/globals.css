@@ -159,15 +159,15 @@
 }
 
 .dark {
-  --bg: #0c0a09;
-  --surface: #151311;
-  --sunken: #1c1917;
-  --ink: #e7e5e4;
-  --ink-strong: #fafaf9;
-  --muted: #a8a29e;
-  --subtle: #78716c;
-  --line: #292524;
-  --line-strong: #44403c;
+  --bg: #101011;
+  --surface: #19191b;
+  --sunken: #212123;
+  --ink: #e4e4e7;
+  --ink-strong: #fafafa;
+  --muted: #a4a4ab;
+  --subtle: #85858c;
+  --line: #2c2c30;
+  --line-strong: #424248;
 
   --brand: #3fb5aa;
   --brand-ring: #2e978d;
