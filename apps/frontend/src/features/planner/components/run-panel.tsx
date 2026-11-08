@@ -111,14 +111,14 @@ export function RunPanel({ state, onCancel }: { state: Running; onCancel: () => 
 
   return (
     <section ref={root} aria-label="Generation progress" aria-busy="true" className="grid grid-cols-1 items-start gap-5 border-t border-line bg-surface p-4 sm:gap-6 sm:p-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-stretch">
-      <ThinkingState label={state.kind === 'refine' ? 'Revising' : 'Thinking'} detail={line.text} elapsed={elapsed} onStop={onCancel}>
+      <ThinkingState label={state.kind === 'refine' ? 'Revising' : 'Thinking'} detail={line.text} detailKey={line.key} elapsed={elapsed} onStop={onCancel}>
         {searched && <WebSearch query={state.searchQuery} sources={state.sources} searching={state.stage === 'searching'} elapsed={elapsed} />}
         <TaskList tasks={tasks} />
       </ThinkingState>
 
       {/* Live preview / raw JSON */}
       <div role="region" aria-label="Live plan panel" className="relative min-w-0 lg:min-h-72">
-        <WindowFrame title={view === 'preview' ? 'Live plan' : 'Trip data'} action={<ViewToggle value={view} onChange={setView} />} className="h-[22rem] rounded-xl border border-line shadow-none lg:absolute lg:inset-0 lg:h-full" bodyClassName="overflow-hidden">
+        <WindowFrame title={<LiveTitle label={view === 'json' ? 'Trip data' : state.stage === 'validating' ? 'Checking plan' : 'Live plan'} />} action={<ViewToggle value={view} onChange={setView} />} className="h-[22rem] rounded-xl border border-line shadow-none lg:absolute lg:inset-0 lg:h-full" bodyClassName="overflow-hidden">
           <div className="h-full min-h-0">
             {view === 'preview' ? <LivePreview plan={plan} writing={state.stage === 'drafting' || state.stage === 'connecting'} /> : <RawJson raw={state.raw} />}
           </div>
@@ -128,9 +128,29 @@ export function RunPanel({ state, onCancel }: { state: Running; onCancel: () => 
   );
 }
 
+/** The window title, led by a softly pulsing dot while the plan is still being written. */
+function LiveTitle({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className="relative flex size-1.5" aria-hidden>
+        <span className="absolute inset-0 animate-ping rounded-full bg-brand opacity-50" />
+        <span className="relative size-1.5 rounded-full bg-brand" />
+      </span>
+      {label}
+    </span>
+  );
+}
+
 function ViewToggle({ value, onChange }: { value: 'preview' | 'json'; onChange: (v: 'preview' | 'json') => void }) {
   return (
-    <span role="tablist" aria-label="Stream view" className="flex rounded-lg bg-sunken p-0.5">
+    <span role="tablist" aria-label="Stream view" className="relative grid grid-cols-2 rounded-lg bg-sunken p-0.5">
+      {/* One pill that slides to the selected tab rather than two that blink. Plain CSS on purpose: a
+          shared-layout (layoutId) pill would hold the panel's exit open when the run ends. */}
+      <span
+        aria-hidden
+        className="absolute inset-y-0.5 left-0.5 w-[calc(50%-2px)] rounded-md bg-surface shadow-[0_0_0_1px_var(--line)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+        style={{ transform: value === 'json' ? 'translateX(100%)' : undefined }}
+      />
       {(
         [
           ['preview', 'Preview'],
@@ -143,9 +163,9 @@ function ViewToggle({ value, onChange }: { value: 'preview' | 'json'; onChange: 
           role="tab"
           aria-selected={value === id}
           onClick={() => onChange(id)}
-          className={cn('label h-6 rounded-md px-2 text-[10px] transition-colors', value === id ? 'bg-surface text-ink shadow-[0_0_0_1px_var(--line)]' : 'text-muted hover:text-ink')}
+          className={cn('label relative h-6 rounded-md px-2 text-[10px] transition-colors', value === id ? 'text-ink' : 'text-muted hover:text-ink')}
         >
-          {label}
+          <span className="relative">{label}</span>
         </button>
       ))}
     </span>
@@ -203,11 +223,27 @@ function RawJson({ raw }: { raw: string }) {
   );
 }
 
-const enter = { initial: { opacity: 0, y: 3 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.2, ease } };
+// New lines resolve out of a soft blur as they arrive, rather than popping in.
+const enter = { initial: { opacity: 0, y: 4, filter: 'blur(2px)' }, animate: { opacity: 1, y: 0, filter: 'blur(0px)' }, transition: { duration: 0.35, ease } };
+
+/** A day's stops hang off a thin rail; each stop is a node on it. */
+const RAIL = "relative mt-1.5 flex flex-col before:absolute before:inset-y-2 before:left-[3px] before:w-px before:bg-line before:content-['']";
+const ROW = 'relative grid grid-cols-[4.5rem_minmax(0,1fr)] items-baseline gap-2 py-1 pl-5 text-[13px] leading-5';
+
+/** The rail node: filled once written; the stop being written now is brand-coloured and pulses. */
+function Node({ live }: { live?: boolean }) {
+  return (
+    <span className="absolute top-[10.5px] left-0 flex size-1.75" aria-hidden>
+      {live && <span className="absolute inset-0 animate-ping rounded-full bg-brand opacity-40" />}
+      <span className={cn('relative size-1.75 rounded-full ring-2 ring-surface', live ? 'bg-brand' : 'bg-line-strong')} />
+    </span>
+  );
+}
 
 function GhostRow({ width }: { width: string }) {
   return (
-    <li className="grid grid-cols-[5rem_minmax(0,1fr)] items-center gap-2 py-1.5 pl-3" aria-hidden>
+    <li className={cn(ROW, 'min-h-7 items-center')} aria-hidden>
+      <span className="absolute top-[10.5px] left-0 size-1.75 rounded-full border border-dashed border-line-strong bg-surface" />
       <span className="skeleton h-2.5 w-9" />
       <span className="skeleton h-2.5" style={{ width }} />
     </li>
@@ -224,37 +260,43 @@ function LivePreview({ plan, writing }: { plan: LivePlan | null; writing: boolea
 
   return (
     <div className="relative h-full min-h-0">
-    <div ref={ref} tabIndex={0} role="region" aria-label="Live itinerary preview" className="pane-scroll h-full overflow-y-auto overflow-x-hidden px-5 pt-4 pb-6 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand" aria-live="off">
+    <div ref={ref} tabIndex={0} role="region" aria-label="Live itinerary preview" className="pane-scroll h-full overflow-y-auto overflow-x-hidden px-5 pb-6 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand" aria-live="off">
       {plan?.destination || plan?.title ? (
-        <motion.div {...motionProps} className="mb-4">
+        <motion.div {...motionProps} className="mb-4 pt-4">
           {plan.destination && <p className="label text-[11px] text-brand">{plan.destination}</p>}
           {plan.title && <p className="mt-1 font-display text-[22px] leading-tight text-ink-strong">{plan.title}</p>}
         </motion.div>
       ) : (
-        <div className="mb-5 flex flex-col gap-2.5" aria-hidden>
+        <div className="mb-5 flex pt-4 flex-col gap-2.5" aria-hidden>
           <span className="skeleton h-2.5 w-24" />
           <span className="skeleton h-5 w-3/4" />
         </div>
       )}
-      <ol className="flex flex-col gap-4">
+      <ol className="flex flex-col gap-3">
         {days.map((day, i) => {
           const lastDay = i === days.length - 1;
           return (
             <motion.li key={i} {...motionProps}>
-              <p className="label flex items-baseline gap-2 text-[11px] text-subtle">
-                Day {pad2(i + 1)}
-                {day.title && <span className="truncate font-sans text-[13px] font-medium tracking-normal text-ink normal-case">{day.title}</span>}
+              {/* Stays pinned while its stops scroll beneath it, so a long day never loses its heading. */}
+              <p className="sticky top-0 z-10 -mx-5 flex items-baseline gap-2 bg-surface px-5 py-1.5">
+                <span className={cn('label tabular shrink-0 text-[11px]', lastDay && writing ? 'text-brand' : 'text-subtle')}>Day {pad2(i + 1)}</span>
+                {day.title && <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink">{day.title}</span>}
+                <span className="tabular ml-auto shrink-0 text-[11px] text-subtle">{plural(day.stops.length, 'stop')}</span>
               </p>
-              <ul className="mt-2 flex flex-col border-l border-line">
-                {day.stops.map((stop, j) => (
-                  <motion.li key={j} {...motionProps} className="grid grid-cols-[5rem_minmax(0,1fr)] gap-2 py-1 pl-3 text-[13px]">
-                    <span className="label tabular pt-px text-[11px] whitespace-nowrap text-muted">{formatTime(stop.time) ?? 'Any'}</span>
-                    <span className="truncate text-ink">
-                      {stop.title}
-                      {writing && lastDay && j === day.stops.length - 1 && <span className="ml-0.5 inline-block h-3 w-[6px] animate-caret bg-brand align-[-1px]" aria-hidden />}
-                    </span>
-                  </motion.li>
-                ))}
+              <ul className={RAIL}>
+                {day.stops.map((stop, j) => {
+                  const live = writing && lastDay && j === day.stops.length - 1;
+                  return (
+                    <motion.li key={j} {...motionProps} className={cn(ROW, 'animate-flash rounded-md')}>
+                      <Node live={live} />
+                      <span className="label tabular text-[11px] whitespace-nowrap text-muted">{formatTime(stop.time) ?? 'Any'}</span>
+                      <span className="truncate text-ink">
+                        {stop.title}
+                        {live && <span className="ml-0.5 inline-block h-3 w-[6px] animate-caret bg-brand align-[-1px]" aria-hidden />}
+                      </span>
+                    </motion.li>
+                  );
+                })}
                 {writing && lastDay && <GhostRow width="55%" />}
               </ul>
             </motion.li>
@@ -262,8 +304,8 @@ function LivePreview({ plan, writing }: { plan: LivePlan | null; writing: boolea
         })}
         {!days.length && (
           <li aria-hidden>
-            <span className="skeleton block h-2.5 w-14" />
-            <ul className="mt-3 flex flex-col border-l border-line">
+            <span className="skeleton my-2 block h-2.5 w-14" />
+            <ul className={RAIL}>
               <GhostRow width="70%" />
               <GhostRow width="52%" />
               <GhostRow width="62%" />

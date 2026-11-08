@@ -25,7 +25,7 @@ export function ThinkingMark() {
 }
 
 /** The live timer and stop control remain available when the activity is folded away. */
-export function ThinkingState({ label, detail, elapsed, onStop, children }: { label: string; detail: string; elapsed: number; onStop: () => void; children: ReactNode }) {
+export function ThinkingState({ label, detail, detailKey, elapsed, onStop, children }: { label: string; detail: string; /** Changes when the line is about something new; a streaming update to the same line keeps it. */ detailKey?: string; elapsed: number; onStop: () => void; children: ReactNode }) {
   const reduce = useReducedMotion();
   const [open, setOpen] = useState(true);
   const bodyId = useId();
@@ -49,7 +49,23 @@ export function ThinkingState({ label, detail, elapsed, onStop, children }: { la
             <span className="tabular font-mono text-[11px] text-subtle" aria-label={`Elapsed ${seconds} seconds`}>{time}</span>
             <CaretDown size={12} aria-hidden className={cn('shrink-0 text-subtle transition-all group-hover:text-ink motion-reduce:transition-none', !open && '-rotate-90')} />
           </button>
-          <p className="mt-1 truncate pl-[30px] text-[12px] leading-5 text-subtle" aria-live="polite">{detail}</p>
+          {/* The status swaps like a ticker: the old line lifts away blurred as the new one rises in. */}
+          <p className="relative mt-1 h-5 overflow-hidden pl-[30px] text-[12px] leading-5 text-subtle">
+            <span className="sr-only" aria-live="polite">{detail}</span>
+            <AnimatePresence initial={false} mode="popLayout">
+              <motion.span
+                key={detailKey ?? detail}
+                aria-hidden
+                className="block truncate"
+                initial={reduce ? false : { opacity: 0, y: 8, filter: 'blur(2px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={reduce ? undefined : { opacity: 0, y: -8, filter: 'blur(2px)' }}
+                transition={{ duration: 0.2, ease }}
+              >
+                {detail}
+              </motion.span>
+            </AnimatePresence>
+          </p>
         </div>
         <button type="button" onClick={onStop} className="mt-0.5 min-h-8 shrink-0 rounded-md px-2 text-[12px] text-muted transition-colors hover:bg-sunken hover:text-ink focus-visible:outline-2 focus-visible:outline-brand">Stop</button>
       </div>
