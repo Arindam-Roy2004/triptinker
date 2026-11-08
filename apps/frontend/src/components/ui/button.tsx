@@ -17,6 +17,7 @@ const buttonVariants = cva(
         secondary: 't-surface t-surface-outline text-ink',
         clay: 't-surface t-surface-clay text-white',
         danger: 't-surface t-surface-danger text-err',
+        destructive: 't-surface t-surface-destructive text-white',
         ghost: 'text-ink hover:bg-ink/6 active:scale-[0.97] aria-expanded:bg-ink/6',
         link: 'h-auto px-0 text-brand underline-offset-4 hover:underline',
       },

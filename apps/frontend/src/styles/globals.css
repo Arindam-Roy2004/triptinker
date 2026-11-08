@@ -483,6 +483,25 @@
   --surface-drop-near: #0000000a;
   --surface-drop: #0000000d;
 }
+/* Destructive: a solid red, for confirming a step that throws work away */
+.t-surface-destructive::before {
+  --surface-base: #d14a35;
+  --surface-lit: #bf3d29;
+  --surface-sheen: linear-gradient(#ffffff1f, #fff0 50%);
+  --surface-edge-top: #e88470;
+  --surface-edge-bottom: #9c2f1f;
+  --surface-ring: #942c1c;
+  --surface-shade: #5a150a2e;
+  --surface-drop-near: #942c1c1f;
+  --surface-drop: #942c1c29;
+  --surface-hover-tint: white 6%;
+}
+.dark .t-surface-destructive::before {
+  --surface-ring: #4a160e;
+  --surface-drop-near: #0003;
+  --surface-drop: #0006;
+}
+
 .dark .t-surface-danger::before {
   --surface-base: #3a1d1a;
   --surface-lit: #44221e;
