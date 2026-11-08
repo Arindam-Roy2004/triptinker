@@ -54,6 +54,12 @@ export const config = {
     maxOutputTokens: int('LLM_MAX_OUTPUT_TOKENS', 6_000),
     reasoningEffort: ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'].includes(process.env.LLM_REASONING_EFFORT?.trim() ?? '') ? process.env.LLM_REASONING_EFFORT!.trim() : null,
   } satisfies ProviderConfig,
+  /** Voice input: a cheap audio-capable model on the same provider and key as planning. */
+  stt: {
+    model: (process.env.STT_MODEL ?? 'google/gemini-2.5-flash-lite').trim(),
+    timeoutMs: int('STT_TIMEOUT_MS', 20_000),
+    enabled: process.env.STT_ENABLED !== 'false',
+  },
   /** Optional: ground new plans in a Tavily web search. Off when no key is set. */
   search: {
     apiKey: (process.env.TAVILY_API_KEY ?? '').trim(),

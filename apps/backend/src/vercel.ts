@@ -1,6 +1,7 @@
 import { createApp } from './app';
 import { config, isConfigured } from './config';
 import { createTavilySearch } from './search/tavily';
+import { createTranscriber } from './stt';
 
 /**
  * Entry for Vercel: the same Express app as the local server, exported as a request handler
@@ -13,6 +14,7 @@ const app = createApp({
   allowSimulation: config.allowSimulation,
   rateLimitPerMinute: config.rateLimitPerMinute,
   search: config.search.apiKey ? createTavilySearch({ apiKey: config.search.apiKey, timeoutMs: config.search.timeoutMs }) : null,
+  transcribe: config.stt.enabled ? createTranscriber({ apiKey: config.provider.apiKey, baseUrl: config.provider.baseUrl, model: config.stt.model, timeoutMs: config.stt.timeoutMs }) : null,
 });
 
 // Exactly one proxy (Vercel's edge) sits in front of the function and sets X-Forwarded-For to the

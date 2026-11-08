@@ -4,6 +4,7 @@ import express from 'express';
 import { createApp } from './app';
 import { config, isConfigured } from './config';
 import { createTavilySearch } from './search/tavily';
+import { createTranscriber } from './stt';
 
 // The frontend workspace: Vite serves it in development, its build is served in production.
 const root = path.resolve(import.meta.dirname, '../../frontend');
@@ -13,6 +14,7 @@ const app = createApp({
   allowSimulation: config.allowSimulation,
   rateLimitPerMinute: config.rateLimitPerMinute,
   search: config.search.apiKey ? createTavilySearch({ apiKey: config.search.apiKey, timeoutMs: config.search.timeoutMs }) : null,
+  transcribe: config.stt.enabled ? createTranscriber({ apiKey: config.provider.apiKey, baseUrl: config.provider.baseUrl, model: config.stt.model, timeoutMs: config.stt.timeoutMs }) : null,
 });
 const server = createHttpServer(app);
 

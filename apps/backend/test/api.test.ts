@@ -43,7 +43,7 @@ describe('HTTP API', () => {
   it('reports health without exposing the key', async () => {
     const base = await serve();
     const body = await (await fetch(`${base}/api/health`)).text();
-    expect(JSON.parse(body)).toEqual({ configured: true, model: 'test-model', simulation: false, search: false });
+    expect(JSON.parse(body)).toEqual({ configured: true, model: 'test-model', simulation: false, search: false, voice: false });
     expect(body).not.toContain('sk-secret');
   });
 

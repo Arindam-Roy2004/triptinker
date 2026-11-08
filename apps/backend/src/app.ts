@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import express, { type Request, type Response } from 'express';
 import { rateLimit } from 'express-rate-limit';
-import { GenerateItineraryDto, RefineItineraryDto, SIMULATIONS, type ErrorEnvelope, type FieldError, type Health, type Simulation, type StreamEvent } from '@triptinker/contracts';
+import { GenerateItineraryDto, RefineItineraryDto, SIMULATIONS, type ErrorEnvelope, type FieldError, type Health, type Simulation, type StreamEvent, type Transcription } from '@triptinker/contracts';
 import type { ProviderConfig } from './config';
 import { AppError, appError, USER_MESSAGES } from './errors';
 import { runGeneration, type Timeouts } from './pipeline';
@@ -9,6 +9,7 @@ import { generationMessages, refinementMessages, type ChatMessage } from './prom
 import { createOpenAiProvider, type Provider } from './provider';
 import { searchQuery, type Search, type WebResult } from './search/tavily';
 import { SIMULATION_TIMEOUTS, createSimulatedProvider, simulatedSearch } from './simulate';
+import { MAX_AUDIO_BYTES, isWav, type Transcribe } from './stt';
 
 export type AppOptions = {
   provider: ProviderConfig;
@@ -19,6 +20,8 @@ export type AppOptions = {
   rateLimitPerMinute?: number;
   /** Web search used to ground new plans. Null when no search key is configured. */
   search?: Search | null;
+  /** Speech to text for voice input. Null when voice is off or no model is configured. */
+  transcribe?: Transcribe | null;
 };
 
 const shortId = () => randomUUID().slice(0, 8);
@@ -43,6 +46,7 @@ export function createApp(options: AppOptions) {
       model: options.configured ? options.provider.model : null,
       simulation: options.allowSimulation,
       search: !!options.search,
+      voice: options.configured && !!options.transcribe,
     };
     res.json(body);
   });
@@ -133,6 +137,36 @@ export function createApp(options: AppOptions) {
     const { itinerary, instruction } = value;
     const knownIds = new Set(itinerary.days.flatMap((day) => day.stops.map((stop) => stop.id)));
     await stream(req, res, { messages: () => refinementMessages(itinerary, instruction), knownIds });
+  });
+
+  // Voice input: a short WAV clip in, its transcript out. Kept apart from the planning limiter so
+  // dictating a brief never uses up the traveller's planning requests.
+  const voiceLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: (options.rateLimitPerMinute ?? 20) * 2,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    handler: (_req, res) => sendError(res, 429, appError('RATE_LIMITED', 'local rate limit')),
+  });
+  app.post('/api/transcribe', voiceLimiter, express.raw({ type: 'audio/wav', limit: MAX_AUDIO_BYTES }), async (req, res) => {
+    if (!options.configured || !options.transcribe) return sendError(res, 503, appError('NOT_CONFIGURED'));
+    const audio = req.body;
+    if (!Buffer.isBuffer(audio) || !isWav(audio)) return sendError(res, 400, new AppError('INVALID_INPUT', 'Send a WAV recording.', false));
+
+    const controller = new AbortController();
+    res.on('close', () => {
+      if (!res.writableEnded) controller.abort(new Error('client disconnected'));
+    });
+    try {
+      const text = await options.transcribe(audio, controller.signal);
+      const body: Transcription = { text };
+      res.json(body);
+    } catch (error) {
+      if (controller.signal.aborted && !(error instanceof AppError)) return;
+      const failure = error instanceof AppError ? error : appError('INTERNAL');
+      console.warn(`[transcribe] ${failure.code}: ${failure.detail ?? failure.message}`);
+      sendError(res, failure.code === 'RATE_LIMITED' ? 429 : failure.code === 'TIMEOUT' ? 504 : 502, failure);
+    }
   });
 
   app.use('/api', (_req, res) => sendError(res, 404, new AppError('INVALID_INPUT', 'Not found', false)));
