@@ -66,7 +66,7 @@ test('previews the plan as it streams, then renders only the validated plan', as
   test.setTimeout(90_000);
   await useLab(page, /Slow model/);
   await plan(page);
-  await expect(page.getByText('Planning your trip…')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Hide thinking steps' })).toBeVisible();
   await expect(page.getByText('Live plan', { exact: true })).toBeVisible();
   // The preview fills in from the partial JSON: the title shows up before the run is done.
   const panel = page.getByRole('region', { name: 'Generation progress' });
@@ -124,7 +124,7 @@ test('a stale response never replaces what the user switched to', async ({ page 
   test.setTimeout(90_000);
   await useLab(page, /Slow model/);
   await plan(page, 'Ten days across Japan, mostly trains and food.');
-  await expect(page.getByText('Planning your trip…')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Hide thinking steps' })).toBeVisible();
   await page.getByRole('button', { name: 'View sample' }).click();
   await expect(page.getByText('Sample', { exact: true })).toBeVisible();
   await page.waitForTimeout(24_000); // longer than the slow simulation takes to finish
@@ -136,7 +136,7 @@ test('stop cancels the run cleanly', async ({ page }) => {
   await useLab(page, /Slow model/);
   await plan(page);
   await page.getByRole('button', { name: 'Stop generating' }).click();
-  await expect(page.getByText('Planning your trip…')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Hide thinking steps' })).toHaveCount(0);
   await expect(page.getByText('Day by day', { exact: true })).toBeVisible();
   // Nothing lands later, and the brief is still there to edit and resend.
   await expect(page.getByLabel('Describe your trip')).toHaveValue(BRIEF);

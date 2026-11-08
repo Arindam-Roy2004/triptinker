@@ -4,7 +4,6 @@ import { useEffect, useId, useState, type KeyboardEvent, type RefObject } from '
 import { LIMITS } from '@triptinker/contracts';
 import { Shimmer } from '@/components/ai/shimmer';
 import { Button } from '@/components/ui/button';
-import { SpinnerRing } from '@/components/ui/spinner-ring';
 import { formatElapsed } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { ItineraryDiff } from '../diff';
@@ -12,6 +11,7 @@ import type { GenerationState } from '../use-generation';
 import { describeProblem, type Problem } from '../problem-copy';
 import { appendSpoken } from '../use-voice-input';
 import { MicButton } from './mic-button';
+import { ThinkingMark } from './thinking-state';
 
 const SUGGESTIONS = ['Slow down day one', 'Add vegetarian dinners', 'More outdoor stops', 'Start after 9am'];
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -75,7 +75,7 @@ export function RefineBar(props: Props) {
             transition={{ duration: 0.22, ease }}
           >
             {mode === 'review' && props.pending && <Review pending={props.pending} onApply={props.onApply} onDiscard={props.onDiscard} />}
-            {mode === 'running' && props.run && <Working run={props.run} instruction={props.value} onStop={props.onStop} reduce={!!reduce} />}
+            {mode === 'running' && props.run && <Working run={props.run} instruction={props.value} onStop={props.onStop} />}
             {mode === 'problem' && props.problem && <Failure problem={props.problem} onRetry={props.onRetry} onEdit={props.onDismissProblem} />}
             {mode === 'idle' && <Compose {...props} />}
           </motion.div>
@@ -188,11 +188,11 @@ function useElapsed(since: number) {
   return now - since;
 }
 
-function Working({ run, instruction, onStop, reduce }: { run: Running; instruction: string; onStop: () => void; reduce: boolean }) {
+function Working({ run, instruction, onStop }: { run: Running; instruction: string; onStop: () => void }) {
   const elapsed = useElapsed(run.startedAt);
   return (
     <div className="flex items-center gap-3 px-4 py-3" aria-live="polite">
-      <SpinnerRing reduce={reduce} />
+      <ThinkingMark />
       <div className="min-w-0 flex-1">
         <Shimmer as="p" duration={1.8} className="text-[14px] font-medium">
           {`${STAGE_TEXT[run.stage]}…`}

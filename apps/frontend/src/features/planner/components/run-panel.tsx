@@ -1,14 +1,14 @@
-import { ArrowClockwise, CalendarBlank, Check, GlobeSimple, ShieldCheck, TextAlignLeft, type Icon } from '@phosphor-icons/react';
+import { ArrowClockwise, CalendarBlank, GlobeSimple, ShieldCheck, TextAlignLeft, type Icon } from '@phosphor-icons/react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { Shimmer } from '@/components/ai/shimmer';
-import { SpinnerRing } from '@/components/ui/spinner-ring';
-import { formatElapsed, formatTime, pad2 } from '@/lib/format';
+import { formatTime, pad2 } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { livePlan, type LivePlan } from '../partial-json';
 import type { GenerationState } from '../use-generation';
 import { highlightJson } from './json-highlight';
 import { WindowFrame } from './window-frame';
+import { WebSearch } from './web-search';
+import { ThinkingState } from './thinking-state';
 
 type Running = Extract<GenerationState, { status: 'running' }>;
 type Status = 'done' | 'active' | 'todo';
@@ -18,9 +18,8 @@ const ease = [0.22, 1, 0.36, 1] as const;
 const TAIL = 7_000; // only the end of the stream is on screen, so only highlight the end
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
-/** At most a few chips per step, so a ten-day plan can't grow the panel: the latest days, or the first sources. */
+/** Keep the latest day chips visible without letting a ten-day plan fill the panel. */
 const latest = (items: string[], max: number) => (items.length > max ? [`+${items.length - max} earlier`, ...items.slice(-max)] : items);
-const first = (items: string[], max: number) => (items.length > max ? [...items.slice(0, max), `+${items.length - max} more`] : items);
 
 /** The run as a short chain of steps, filled in from what has actually streamed so far. */
 function buildSteps(state: Running, plan: LivePlan | null): Step[] {
@@ -33,7 +32,6 @@ function buildSteps(state: Running, plan: LivePlan | null): Step[] {
   const status = (id: string): Status => (order.indexOf(id) < at ? 'done' : id === active ? 'active' : 'todo');
   const days = plan?.days ?? [];
   const stops = days.reduce((n, d) => n + d.stops.length, 0);
-  const found = state.sources ?? [];
   const list: Step[] = [
     { id: 'read', icon: TextAlignLeft, title: refine ? 'Read your change' : 'Read your brief', detail: 'Destination, length and pace', status: status('read') },
     ...(searched
@@ -42,13 +40,8 @@ function buildSteps(state: Running, plan: LivePlan | null): Step[] {
             id: 'search',
             icon: GlobeSimple,
             title: 'Search the web',
-            detail:
-              state.sources === null ? 'Looking up current guides for this trip' : found.length ? `Read ${plural(found.length, 'source')}` : 'Nothing useful found, planning from what the model knows',
+            detail: '',
             status: status('search'),
-            chips: first(
-              found.map((s) => s.domain),
-              4,
-            ),
           },
         ]
       : []),
@@ -113,7 +106,7 @@ export function RunPanel({ state, onCancel }: { state: Running; onCancel: () => 
   const elapsed = useNow() - state.startedAt;
   const deferred = useDeferredValue(state.raw);
   const plan = useMemo(() => livePlan(deferred), [deferred]);
-  const steps = buildSteps(state, plan);
+  const steps = buildSteps(state, plan).filter((step) => step.status !== 'todo');
   const line = statusLine(state, plan, elapsed);
   const [view, setView] = useState<'preview' | 'json'>('preview');
   const root = useRef<HTMLElement>(null);
@@ -125,42 +118,23 @@ export function RunPanel({ state, onCancel }: { state: Running; onCancel: () => 
 
   return (
     <section ref={root} aria-label="Generation progress" aria-busy="true" className="grid grid-cols-1 border-t border-line lg:h-[34rem] lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-      <div className="flex flex-col bg-surface lg:min-h-0 lg:border-r lg:border-line">
-        {/* Thinking bar */}
-        <div className="flex items-start gap-3 border-b border-line px-6 py-5">
-          <div className="min-w-0 flex-1">
-            <Shimmer as="p" duration={1.8} className="text-[15px] font-medium">
-              {state.kind === 'refine' ? 'Revising your plan…' : 'Planning your trip…'}
-            </Shimmer>
-            <div className="relative mt-1 h-5 overflow-hidden" aria-live="polite">
-              <AnimatePresence mode="popLayout" initial={false}>
-                <motion.p
-                  key={line.key}
-                  initial={reduce ? false : { opacity: 0, y: 10, filter: 'blur(4px)' }}
-                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                  exit={reduce ? undefined : { opacity: 0, y: -10, filter: 'blur(4px)' }}
-                  transition={{ duration: 0.3, ease }}
-                  className="truncate text-[13px] leading-5 text-muted"
-                >
-                  {line.text}
-                </motion.p>
-              </AnimatePresence>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-3 pt-0.5">
-            <span className="tabular text-[12px] text-subtle" aria-label={`Elapsed ${Math.floor(elapsed / 1000)} seconds`}>
-              {formatElapsed(elapsed)}
-            </span>
-            <button type="button" onClick={onCancel} className="border-b border-dotted border-subtle text-[13px] text-muted transition-colors hover:border-ink hover:text-ink">
-              Stop
-            </button>
-          </div>
-        </div>
-
+      <ThinkingState label={state.kind === 'refine' ? 'Revising' : 'Thinking'} detail={line.text} elapsed={elapsed} onStop={onCancel}>
         {/* Chain of steps */}
-        <ol className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-6 py-6 [scrollbar-width:thin]" aria-label="Stages">
+        <ol className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-6 pt-3 pb-6 [scrollbar-width:thin]" aria-label="Stages" aria-live="polite" aria-relevant="additions text">
           <AnimatePresence initial={false}>
-            {steps.map((step, i) => (
+            {steps.map((step, i) => step.id === 'search' ? (
+              <motion.li
+                key="search"
+                layout={!reduce}
+                initial={reduce ? false : { opacity: 0, height: 0, filter: 'blur(3px)' }}
+                animate={{ opacity: 1, height: 'auto', filter: 'blur(0px)' }}
+                transition={{ duration: 0.3, ease }}
+                aria-current={state.stage === 'searching' ? 'step' : undefined}
+                className="min-w-0"
+              >
+                <WebSearch query={state.searchQuery} sources={state.sources} searching={state.stage === 'searching'} elapsed={elapsed} />
+              </motion.li>
+            ) : (
               <motion.li
                 key={step.id}
                 layout={!reduce}
@@ -180,7 +154,7 @@ export function RunPanel({ state, onCancel }: { state: Running; onCancel: () => 
                   </p>
                   <p className={cn('mt-0.5 text-[13px] leading-5', step.status === 'todo' ? 'text-subtle' : 'text-muted')}>{step.detail}</p>
                   {!!step.chips?.length && (
-                    <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label={step.id === 'search' ? 'Sources' : 'Days so far'}>
+                    <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Days so far">
                       <AnimatePresence initial={false}>
                         {step.chips.map((chip) => (
                           <motion.li
@@ -201,7 +175,7 @@ export function RunPanel({ state, onCancel }: { state: Running; onCancel: () => 
             ))}
           </AnimatePresence>
         </ol>
-      </div>
+      </ThinkingState>
 
       {/* Live preview / raw JSON */}
       <div className="crosshatch p-4 sm:p-8 lg:min-h-0">
@@ -213,28 +187,19 @@ export function RunPanel({ state, onCancel }: { state: Running; onCancel: () => 
   );
 }
 
-/** Done: a filled check. Active: a thin spinning arc. To do: an empty ring. */
+/** Quiet icons for completed steps; a small pixel marks the work currently in progress. */
 function StepIcon({ status, icon: Icon, reduce }: { status: Status; icon: Icon; reduce: boolean }) {
-  if (status === 'done') {
-    return (
-      <motion.span
-        initial={reduce ? false : { scale: 0.5, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 520, damping: 22 }}
-        className="relative grid size-5 place-items-center rounded-full bg-brand text-brand-ink"
-      >
-        <Check size={11} weight="bold" />
-      </motion.span>
-    );
-  }
-  if (status === 'active') {
-    return (
-      <SpinnerRing reduce={reduce}>
-        <Icon size={10} weight="bold" />
-      </SpinnerRing>
-    );
-  }
-  return <span className="relative mt-[3px] ml-[3px] size-3.5 rounded-full border border-line-strong bg-surface" />;
+  return (
+    <span className="relative grid size-5 place-items-center bg-surface text-subtle" aria-hidden>
+      {status === 'active' ? (
+        <motion.span
+          className="size-1.5 rounded-[1px] bg-brand"
+          animate={reduce ? undefined : { opacity: [0.35, 1, 0.35] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+        />
+      ) : <Icon size={15} />}
+    </span>
+  );
 }
 
 function ViewToggle({ value, onChange }: { value: 'preview' | 'json'; onChange: (v: 'preview' | 'json') => void }) {
