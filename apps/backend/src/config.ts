@@ -15,6 +15,7 @@ function int(name: string, fallback: number) {
 }
 
 const production = process.env.NODE_ENV === 'production';
+const reasoningEffort = process.env.LLM_REASONING_EFFORT?.trim() ?? 'none';
 
 export type ProviderConfig = {
   apiKey: string;
@@ -46,13 +47,13 @@ export const config = {
   provider: {
     apiKey: (process.env.LLM_API_KEY ?? process.env.OPENROUTER_API_KEY ?? '').trim(),
     baseUrl: (process.env.LLM_BASE_URL ?? 'https://openrouter.ai/api/v1').replace(/\/+$/, ''),
-    model: process.env.LLM_MODEL ?? 'minimax/minimax-m3.1-flash',
+    model: process.env.LLM_MODEL ?? 'qwen/qwen3.8-flash',
     jsonMode: process.env.LLM_JSON_MODE !== 'off',
     firstTokenTimeoutMs: int('LLM_FIRST_TOKEN_TIMEOUT_MS', 30_000),
     idleTimeoutMs: int('LLM_IDLE_TIMEOUT_MS', 20_000),
     totalTimeoutMs: int('LLM_TOTAL_TIMEOUT_MS', 120_000),
     maxOutputTokens: int('LLM_MAX_OUTPUT_TOKENS', 6_000),
-    reasoningEffort: ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'].includes(process.env.LLM_REASONING_EFFORT?.trim() ?? '') ? process.env.LLM_REASONING_EFFORT!.trim() : null,
+    reasoningEffort: ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'].includes(reasoningEffort) ? reasoningEffort : null,
   } satisfies ProviderConfig,
   /** Voice input: a cheap audio-capable model on the same provider and key as planning. */
   stt: {
