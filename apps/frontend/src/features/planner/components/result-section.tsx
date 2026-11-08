@@ -1,4 +1,4 @@
-import { ArrowClockwise, ArrowCounterClockwise, BookmarkSimple, Check, Copy, DownloadSimple, FileText, GlobeSimple, Info, Plus, Printer, Sun } from '@phosphor-icons/react';
+import { ArrowClockwise, ArrowCounterClockwise, BookmarkSimple, Check, Copy, DownloadSimple, FileText, GlobeSimple, Info, Plus, Printer, Sun, X } from '@phosphor-icons/react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { motion, useReducedMotion } from 'motion/react';
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
@@ -48,6 +48,8 @@ type Props = {
   onUndo: () => void;
   onRedo: () => void;
   onSave: () => void;
+  /** Closes the sample and returns the page to its starting state. */
+  onHideSample?: () => void;
   /** Take the trip out of the app: print / save as PDF, a text file, or copied text. */
   onExport: (format: ExportFormat) => void;
   onReorder: (dayId: string, from: number, to: number) => void;
@@ -259,7 +261,16 @@ export function ResultSection(props: Props) {
               <ShimmerLabel number="01" className="text-[12px]">
                 {itinerary.destination}
               </ShimmerLabel>
-              {trip.source === 'sample' && <span className="label rounded-full border border-line px-2 py-px text-[10px] text-muted">Sample</span>}
+              {trip.source === 'sample' && (
+                <span className="label inline-flex items-center gap-1 rounded-full border border-line py-px pr-1 pl-2 text-[10px] text-muted">
+                  Sample
+                  {props.onHideSample && (
+                    <button type="button" onClick={props.onHideSample} aria-label="Hide sample" className="grid size-3.5 place-items-center rounded-full text-subtle transition-colors hover:bg-ink/8 hover:text-ink">
+                      <X size={9} weight="bold" aria-hidden />
+                    </button>
+                  )}
+                </span>
+              )}
             </div>
           </Reveal>
           <Reveal as="div" index={1}>
@@ -323,7 +334,7 @@ export function ResultSection(props: Props) {
               setAnchor(0);
             }}
             className={cn(
-              'group relative flex flex-1 flex-col items-start gap-2 overflow-hidden border-r border-line px-5 py-4 text-left outline-offset-[-2px] transition-colors last:border-r-0',
+              'group relative flex flex-1 flex-col items-start gap-2 overflow-hidden border-r border-line px-6 py-4 text-left outline-offset-[-2px] transition-colors last:border-r-0',
               marked?.perDay[i] ? 'min-w-60' : 'min-w-44',
               d.id !== day.id && 'hover:bg-sunken/60',
             )}

@@ -1,4 +1,4 @@
-import { ArrowRight, Plus } from '@phosphor-icons/react';
+import { ArrowRight, Plus, X } from '@phosphor-icons/react';
 import { AnimatePresence } from 'motion/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -218,6 +218,13 @@ export function PlannerPage() {
     scrollTo('trip');
   };
 
+  /** Puts the page back as it was before the sample was opened. */
+  const hideSample = () => {
+    loadTrip(null);
+    setForm(EMPTY_FORM);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const startNew = () => {
     loadTrip(null);
     setForm(EMPTY_FORM);
@@ -338,9 +345,15 @@ export function PlannerPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <Button variant="secondary" onClick={openSample}>
-              View sample
-            </Button>
+            {trip?.source === 'sample' ? (
+              <Button variant="secondary" onClick={hideSample}>
+                <X /> Hide sample
+              </Button>
+            ) : (
+              <Button variant="secondary" onClick={openSample}>
+                View sample
+              </Button>
+            )}
             <Button variant="primary" onClick={focusPrompt}>
               Plan a trip <ArrowRight />
             </Button>
@@ -421,6 +434,7 @@ export function PlannerPage() {
                 onUndo={store.undo}
                 onRedo={store.redo}
                 onSave={save}
+                onHideSample={hideSample}
                 onExport={(format) => exportTrip(trip, format)}
                 onReorder={(dayId, from, to) => store.edit((it) => moveStop(it, dayId, from, to))}
                 actionsFor={(dayId, stop, index) => ({
@@ -492,7 +506,7 @@ export function PlannerPage() {
               Save and start
             </Button>
             <AlertDialogAction asChild>
-              <Button variant="danger" onClick={startNew}>
+              <Button variant="destructive" onClick={startNew}>
                 Start without saving
               </Button>
             </AlertDialogAction>
