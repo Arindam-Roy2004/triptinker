@@ -1,4 +1,4 @@
-import { ArrowClockwise, ArrowCounterClockwise, ArrowUpRight, BookmarkSimple, Check, Copy, DownloadSimple, FileText, GlobeSimple, Info, Plus, Printer, Sun } from '@phosphor-icons/react';
+import { ArrowClockwise, ArrowCounterClockwise, BookmarkSimple, Check, Copy, DownloadSimple, FileText, GlobeSimple, Info, Plus, Printer, Sun } from '@phosphor-icons/react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { motion } from 'motion/react';
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
@@ -18,6 +18,7 @@ import type { Trip } from '../trip-store';
 import { StopDetail, type StopActions } from './stop-detail';
 import { StopList } from './stop-list';
 import { SceneBackdrop, WindowFrame } from './window-frame';
+import { SourceStack } from './web-search';
 
 const PACE_LABEL = {
   relaxed: 'Relaxed',
@@ -462,24 +463,10 @@ export function ResultSection(props: Props) {
             </p>
           ))}
           {trip.sources.length > 0 && (
-            <div className="flex items-start gap-2 text-subtle">
-              <GlobeSimple size={14} className="mt-[3px] shrink-0" />
-              <p className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-                <span>Grounded in</span>
-                {trip.sources.map((source) => (
-                  <a
-                    key={source.url}
-                    href={source.url}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    title={source.title}
-                    className="inline-flex max-w-[16rem] items-center gap-0.5 truncate text-muted underline decoration-line-strong underline-offset-[3px] transition-colors hover:text-ink hover:decoration-ink"
-                  >
-                    {source.domain}
-                    <ArrowUpRight size={11} className="shrink-0" />
-                  </a>
-                ))}
-              </p>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-subtle">
+              <GlobeSimple size={14} className="shrink-0" aria-hidden />
+              <span>Grounded in</span>
+              <SourceStack sources={trip.sources} label={`${trip.sources.length} ${trip.sources.length === 1 ? 'source' : 'sources'}`} />
             </div>
           )}
         </div>
