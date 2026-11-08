@@ -321,21 +321,23 @@ export function ResultSection(props: Props) {
               setAnchor(0);
             }}
             className={cn(
-              'group relative flex min-w-44 flex-1 flex-col items-start gap-1 overflow-hidden border-r border-line px-6 py-4 text-left outline-offset-[-2px] transition-colors last:border-r-0',
+              'group relative flex min-w-60 flex-1 flex-col items-start gap-2 overflow-hidden border-r border-line px-5 py-4 text-left outline-offset-[-2px] transition-colors last:border-r-0',
               d.id !== day.id && 'hover:bg-sunken/60',
             )}
           >
             {/* Only the selected stop gets the pixel field; the day keeps just the drawing line. */}
             {d.id === day.id && <PixelFill key={d.id} pixels={false} />}
-            <span className={cn('label tabular relative flex items-center gap-2 text-[11px]', d.id === day.id ? 'text-brand' : 'text-subtle')}>
-              Day {pad2(i + 1)} · {d.stops.length} {d.stops.length === 1 ? 'stop' : 'stops'}
+            <span className="relative flex w-full items-center justify-between gap-3">
+              <span className={cn('label tabular shrink-0 text-[11px] whitespace-nowrap', d.id === day.id ? 'text-brand' : 'text-subtle')}>
+                Day {pad2(i + 1)} · {d.stops.length} {d.stops.length === 1 ? 'stop' : 'stops'}
+              </span>
               {!!marked?.perDay[i] &&
                 (review ? (
-                  <span className="rounded-full bg-warn-wash px-1.5 text-[10px] text-warn">
+                  <span className="inline-flex shrink-0 items-center rounded-full border border-warn/15 bg-warn-wash px-2 py-0.5 text-[11px] leading-4 font-medium whitespace-nowrap text-warn">
                     {marked.perDay[i]} {marked.perDay[i] === 1 ? 'change' : 'changes'}
                   </span>
                 ) : (
-                  <span className="rounded-full bg-ok-wash px-1.5 text-[10px] text-ok">updated</span>
+                  <span className="inline-flex shrink-0 items-center rounded-full border border-ok/15 bg-ok-wash px-2 py-0.5 text-[11px] leading-4 font-medium whitespace-nowrap text-ok">Updated</span>
                 ))}
             </span>
             <span className={cn('relative max-w-full truncate text-[15px] font-medium transition-colors', d.id === day.id ? 'text-ink' : 'text-muted group-hover:text-brand')}>{d.title}</span>
