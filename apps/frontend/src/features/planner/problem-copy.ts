@@ -34,7 +34,7 @@ const NEXT: Partial<Record<ErrorCode, string>> = {
   TRUNCATED: 'Try fewer days or fewer stops.',
   EMPTY_OUTPUT: 'Please try again.',
   PROVIDER_AUTH: 'Please try again later. You can still view a sample trip.',
-  TIMEOUT: 'Try again or ask for a shorter trip.',
+  TIMEOUT: 'Planning timed out. Try again with the same trip details.',
   RATE_LIMITED: 'Wait a few seconds, then try again.',
   OVERLOADED: 'Please try again in a moment.',
   CONTENT_FILTERED: 'Rephrase the brief, then try again.',

@@ -50,7 +50,7 @@ export const config = {
     jsonMode: process.env.LLM_JSON_MODE !== 'off',
     firstTokenTimeoutMs: int('LLM_FIRST_TOKEN_TIMEOUT_MS', 30_000),
     idleTimeoutMs: int('LLM_IDLE_TIMEOUT_MS', 20_000),
-    totalTimeoutMs: int('LLM_TOTAL_TIMEOUT_MS', 90_000),
+    totalTimeoutMs: int('LLM_TOTAL_TIMEOUT_MS', 120_000),
     maxOutputTokens: int('LLM_MAX_OUTPUT_TOKENS', 6_000),
     reasoningEffort: ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'].includes(process.env.LLM_REASONING_EFFORT?.trim() ?? '') ? process.env.LLM_REASONING_EFFORT!.trim() : null,
   } satisfies ProviderConfig,
