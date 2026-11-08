@@ -102,7 +102,7 @@ export function createApp(options: AppOptions) {
       // the plan is written from the model's own knowledge and the stream says so (no sources).
       let research: WebResult[] = [];
       if (plan.searchFor && resolved.search) {
-        emit({ type: 'stage', stage: 'searching' });
+        emit({ type: 'stage', stage: 'searching', detail: plan.searchFor });
         try {
           research = await resolved.search(plan.searchFor, controller.signal);
         } catch (error) {

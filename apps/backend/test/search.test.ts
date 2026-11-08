@@ -4,7 +4,7 @@ import type { StreamEvent } from '@triptinker/contracts';
 import { createApp } from '../src/app';
 import { generationMessages, type ChatMessage } from '../src/prompt';
 import type { Provider } from '../src/provider';
-import { cleanSnippet, createTavilySearch, toWebResults, type Search, type WebResult } from '../src/search/tavily';
+import { cleanSnippet, createTavilySearch, searchQuery, toWebResults, type Search, type WebResult } from '../src/search/tavily';
 import { modelOutput, scriptedProvider } from './helpers';
 
 const request = { brief: 'Three days in Lisbon with trams and seafood', days: 3, pace: 'balanced' as const };
@@ -129,7 +129,7 @@ describe('HTTP stream with search', () => {
   it('searches first, sends the sources without snippets, and grounds the prompt', async () => {
     const { events, prompt } = await run(async () => [{ title: 'Guide', url: 'https://guide.example/', domain: 'guide.example', content: 'Ride tram 28 early.' }]);
     expect(events.slice(0, 3)).toEqual([
-      { type: 'stage', stage: 'searching' },
+      { type: 'stage', stage: 'searching', detail: searchQuery(request) },
       { type: 'sources', sources: [{ title: 'Guide', url: 'https://guide.example/', domain: 'guide.example' }] },
       { type: 'stage', stage: 'connecting' },
     ]);

@@ -17,6 +17,8 @@ export type GenerationState =
       raw: string;
       /** What the web search found; null until a search has finished (or when there is none). */
       sources: WebSource[] | null;
+      /** The actual query sent to web search, provided by the searching stage. */
+      searchQuery: string | null;
       startedAt: number;
     }
   | { status: 'error'; kind: RunKind; code: ErrorCode; message: string; retryable: boolean }
@@ -53,7 +55,7 @@ export function useGeneration() {
       controller.current = abort;
       const isCurrent = () => id === runId.current;
 
-      setState({ status: 'running', kind, stage: 'connecting', repairReason: null, progress: { chars: 0, days: 0, stops: 0 }, raw: '', sources: null, startedAt: Date.now() });
+      setState({ status: 'running', kind, stage: 'connecting', repairReason: null, progress: { chars: 0, days: 0, stops: 0 }, raw: '', sources: null, searchQuery: null, startedAt: Date.now() });
       let sources: WebSource[] = [];
 
       const outcome = await streamPlan(request, {
@@ -66,6 +68,7 @@ export function useGeneration() {
               ? {
                   ...prev,
                   stage,
+                  searchQuery: stage === 'searching' ? (detail ?? null) : prev.searchQuery,
                   repairReason: stage === 'repairing' ? (detail ?? 'The first draft was unusable.') : prev.repairReason,
                   progress: stage === 'repairing' ? { chars: 0, days: 0, stops: 0 } : prev.progress,
                   raw: stage === 'repairing' ? '' : prev.raw,
