@@ -16,7 +16,7 @@ export default defineConfig({
   // No key: the app runs against the simulated model only, so tests are deterministic and free.
   webServer: {
     // Test the production build: realistic, and much lighter than Vite's dev transforms under parallel browsers.
-    command: 'npx vite build --logLevel error && npx tsx server/index.ts',
+    command: 'npm run build --silent -w @triptinker/frontend -- --logLevel error && npm run start --silent -w @triptinker/backend',
     url: `http://localhost:${PORT}/api/health`,
     env: { NODE_ENV: 'production', PORT: String(PORT), LLM_API_KEY: '', ALLOW_SIMULATION: 'true', RATE_LIMIT_PER_MINUTE: '1000' },
     timeout: 120_000,

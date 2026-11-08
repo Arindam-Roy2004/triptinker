@@ -1,15 +1,6 @@
-import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
+/** One `npm test` runs every workspace's suite; each package owns its own config. */
 export default defineConfig({
-  resolve: {
-    alias: {
-      '@': path.resolve(import.meta.dirname, 'src'),
-      '@shared': path.resolve(import.meta.dirname, 'shared'),
-    },
-  },
-  test: {
-    include: ['tests/unit/**/*.test.{ts,tsx}'],
-    environment: 'node',
-  },
+  test: { projects: ['packages/*', 'apps/*'] },
 });

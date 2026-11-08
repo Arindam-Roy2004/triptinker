@@ -1,0 +1,26 @@
+{
+  "name": "@triptinker/backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "TripTinker API: validates briefs, calls the model, repairs and validates its output, streams the result over SSE.",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch --ignore '../frontend/**' src/index.ts",
+    "serve": "NODE_ENV=production tsx src/index.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@triptinker/contracts": "*",
+    "dotenv": "^17.4.2",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.3",
+    "tsx": "^4.23.15",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "vite": "^7.3.7"
+  }
+}

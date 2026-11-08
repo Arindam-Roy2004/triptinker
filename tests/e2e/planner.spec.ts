@@ -20,7 +20,11 @@ const tripTitle = (page: Page) => page.getByRole('heading', { level: 2, name: 'T
  * expands in place. The row button comes before its drag handle, so `.first()` is the row.
  */
 async function openStop(page: Page, title: string) {
-  await page.getByRole('list', { name: /^Stops for/ }).getByRole('button', { name: new RegExp(title) }).first().click();
+  await page
+    .getByRole('list', { name: /^Stops for/ })
+    .getByRole('button', { name: new RegExp(title) })
+    .first()
+    .click();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -70,7 +74,9 @@ test('previews the plan as it streams, then renders only the validated plan', as
   await panel.getByRole('tab', { name: 'JSON' }).click();
   await expect(panel.locator('pre').getByText('"status"')).toBeVisible();
   await expect(tripTitle(page)).toBeVisible({ timeout: 60_000 });
-  await expect(page.getByText('Ready', { exact: true })).toBeVisible();
+  await expect(page.getByText('Grounded in')).toBeVisible();
+  // The plan was grounded in a web search, and its sources are listed as plain links.
+  await expect(page.getByRole('link', { name: /en\.wikipedia\.org/ })).toHaveAttribute('href', 'https://en.wikipedia.org/wiki/Lisbon');
 });
 
 test('example chips send immediately', async ({ page }) => {
@@ -79,11 +85,11 @@ test('example chips send immediately', async ({ page }) => {
   await expect(tripTitle(page)).toBeVisible({ timeout: 15_000 });
 });
 
-test('repairs malformed output once and says so', async ({ page }) => {
+test('repairs malformed output once, without bothering the traveller', async ({ page }) => {
   await useLab(page, /Bad JSON, then fixed/);
   await plan(page);
-  await expect(page.getByText('Corrected after a retry')).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText('The first draft had a formatting issue.')).toBeVisible();
+  await expect(tripTitle(page)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('alert')).toHaveCount(0);
 });
 
 test('a failed run explains itself, offers a retry and keeps the plan', async ({ page }) => {
@@ -97,7 +103,7 @@ test('a failed run explains itself, offers a retry and keeps the plan', async ({
 
   await useLab(page, /Clean answer/);
   await page.getByRole('button', { name: 'Try again' }).click();
-  await expect(page.getByText('Ready', { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('Grounded in')).toBeVisible({ timeout: 15_000 });
 });
 
 test('salvages partial output and lists what was cleaned up', async ({ page }) => {
@@ -123,7 +129,7 @@ test('a stale response never replaces what the user switched to', async ({ page 
   await expect(page.getByText('Sample', { exact: true })).toBeVisible();
   await page.waitForTimeout(24_000); // longer than the slow simulation takes to finish
   await expect(page.getByText('Sample', { exact: true })).toBeVisible();
-  await expect(page.getByText('Ready', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Grounded in')).toHaveCount(0);
 });
 
 test('stop cancels the run cleanly', async ({ page }) => {
@@ -146,6 +152,41 @@ test('refinements are reviewed before they are applied', async ({ page }) => {
   await expect(review).toBeVisible({ timeout: 15_000 });
   await review.getByRole('button', { name: 'Discard' }).click();
   await expect(review).toHaveCount(0);
+});
+
+test('removing stops keeps the selection in place, one toast, and an empty day offers a way out', async ({ page, isMobile }) => {
+  test.skip(!!isMobile, 'the side window this checks is desktop-only');
+  await page.getByRole('button', { name: 'View sample' }).click();
+  await expect(tripTitle(page)).toBeVisible();
+  // No API key on the test server: without the lab there is nothing to ask, so no "Suggest stops".
+  await page.getByRole('tab', { name: /Day 02/ }).click();
+  for (let i = 0; i < 6; i++)
+    await page
+      .locator('#trip')
+      .getByRole('button', { name: /^Remove / })
+      .first()
+      .click();
+  await expect(page.getByText('Day 02 is free')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Suggest stops' })).toHaveCount(0);
+  await useLab(page, /Clean answer/);
+  await page.getByRole('tab', { name: /Day 01/ }).click();
+  await openStop(page, 'Castelo de São Jorge');
+  await page.getByRole('button', { name: 'Remove Castelo de São Jorge' }).click();
+  // The stop that moved into its place is shown next, not the first stop of the day.
+  await expect(page.locator('#trip h3')).toHaveText('Lunch at a tasca in Alfama');
+
+  await page.getByRole('tab', { name: /Day 03/ }).click();
+  for (let i = 0; i < 7; i++)
+    await page
+      .locator('#trip')
+      .getByRole('button', { name: /^Remove / })
+      .first()
+      .click();
+  await expect(page.locator('[data-sonner-toast]')).toHaveCount(1);
+  await expect(page.getByText('Day 03 is free')).toBeVisible();
+  await page.getByRole('button', { name: 'Suggest stops' }).click();
+  await expect(page.getByLabel('Describe a change to the plan')).toHaveValue('Add three or four stops to day 3');
+  await expect(page.getByLabel('Describe a change to the plan')).toBeFocused();
 });
 
 test('layout never scrolls horizontally', async ({ page }) => {

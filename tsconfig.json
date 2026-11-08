@@ -1,25 +1,9 @@
 {
   "files": [],
   "references": [
-    {
-      "path": "./tsconfig.app.json"
-    },
-    {
-      "path": "./tsconfig.node.json"
-    },
-    {
-      "path": "./tsconfig.test.json"
-    }
-  ],
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@shared/*": [
-        "./shared/*"
-      ]
-    }
-  }
+    { "path": "./packages/contracts" },
+    { "path": "./apps/backend" },
+    { "path": "./apps/frontend" },
+    { "path": "./tsconfig.tools.json" }
+  ]
 }
