@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#fafaf9" />
+    <meta name="description" content="Turn a free-form travel brief into an editable, day-by-day itinerary." />
+    <meta name="application-name" content="Roamfar" />
+    <meta name="apple-mobile-web-app-title" content="Roamfar" />
+    <meta property="og:site_name" content="Roamfar" />
+    <meta property="og:title" content="Roamfar — plan a trip in one sentence" />
+    <meta property="og:image" content="/icon-512.png" />
+    <!-- The Roamfar app tile. ?v= busts tabs that cached an older icon. -->
+    <link rel="icon" href="/favicon.ico?v=3" sizes="48x48" />
+    <link rel="icon" href="/favicon-32.png?v=3" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3" />
+    <link rel="manifest" href="/site.webmanifest?v=3" />
+    <title>Roamfar — plan a trip in one sentence</title>
+    <script>
+      // Apply the theme before first paint to avoid a flash. Key mirrors STORAGE_KEYS.theme.
+      try {
+        var t = localStorage.getItem('roamfar:theme');
+        if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
