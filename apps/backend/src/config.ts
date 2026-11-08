@@ -42,6 +42,12 @@ export const config = {
   port: int('PORT', 4317),
   /** Generation requests allowed per IP per minute. */
   rateLimitPerMinute: int('RATE_LIMIT_PER_MINUTE', 20),
+  /**
+   * Reverse proxies in front of the server (nginx on a VPS: 1). Trusting exactly that many hops makes
+   * rate limits per visitor instead of per proxy, without letting clients spoof X-Forwarded-For.
+   * 0 (the default) trusts none, for running directly on a port.
+   */
+  trustProxy: Math.max(0, Number.parseInt(process.env.TRUST_PROXY ?? '0', 10) || 0),
   /** The dev-only failure lab. Never enabled in production unless explicitly asked for. */
   allowSimulation: process.env.ALLOW_SIMULATION ? process.env.ALLOW_SIMULATION === 'true' : !production,
   provider: {
