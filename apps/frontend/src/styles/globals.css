@@ -505,3 +505,14 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Scroll the pane rather than letting streamed content resize its neighbouring cards. */
+.pane-scroll {
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+.pane-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.pane-scroll::-webkit-scrollbar-thumb { border-radius: 999px; background: var(--line-strong); }
+.pane-scroll::-webkit-scrollbar-thumb:hover { background: var(--muted); }

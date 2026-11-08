@@ -90,6 +90,58 @@ test('example chips send immediately', async ({ page }) => {
   await expect(tripTitle(page)).toBeVisible({ timeout: 15_000 });
 });
 
+test('streaming stays inside the preview and preserves manual scrolling', async ({ page, isMobile }) => {
+  await useLab(page, /Clean answer/);
+  await page.evaluate(() => {
+    const original = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      if (input !== '/api/itinerary') return original(input, init);
+      const encoder = new TextEncoder();
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          const send = (event: unknown) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+          send({ type: 'stage', stage: 'searching', detail: 'Lisbon travel itinerary' });
+          send({ type: 'sources', sources: [{ title: 'Lisbon', domain: 'en.wikipedia.org', url: 'https://en.wikipedia.org/wiki/Lisbon' }] });
+          send({ type: 'stage', stage: 'drafting' });
+          window.addEventListener('preview-test-chunk', (event) => send({ type: 'delta', text: (event as CustomEvent<string>).detail }));
+        },
+      });
+      return Promise.resolve(new Response(body, { headers: { 'Content-Type': 'text/event-stream' } }));
+    };
+  });
+  await plan(page);
+  const panel = page.getByRole('region', { name: 'Generation progress' });
+  const frame = panel.getByRole('region', { name: 'Live plan panel', exact: true }).locator(':scope > div');
+  await page.evaluate(() => document.fonts.ready);
+  await expect(panel.getByRole('group', { name: 'Source websites' }).locator('../..')).toHaveAttribute('style', /height: auto/);
+  const initialHeight = (await frame.boundingBox())!.height;
+  const stops = Array.from({ length: 24 }, (_, i) => JSON.stringify({ time: '10:00', title: `Stop ${i + 1}`, description: 'A detailed stop description with travel information and practical tips for exploring this part of the city.' })).join(',');
+  const prefix = '{"status":"ok","itinerary":{"title":"Lisbon","destination":"Lisbon","days":[{"title":"Exploring Lisbon","stops":[';
+  await page.evaluate((text) => window.dispatchEvent(new CustomEvent('preview-test-chunk', { detail: text })), prefix + stops);
+  const preview = panel.getByRole('region', { name: 'Live itinerary preview', exact: true });
+  await expect(preview.getByText('Stop 24', { exact: true })).toHaveCount(1);
+  expect(Math.abs((await frame.boundingBox())!.height - initialHeight)).toBeLessThan(2);
+  if (!isMobile) {
+    const tasks = panel.getByRole('button', { name: 'Hide trip tasks' }).locator('..');
+    const a = (await frame.boundingBox())!;
+    const b = (await tasks.boundingBox())!;
+    expect(Math.abs(a.y + a.height - b.y - b.height)).toBeLessThan(2);
+  }
+  await expect.poll(() => preview.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+  await preview.evaluate((el) => { el.scrollTop = 0; });
+  await expect(panel.getByRole('button', { name: 'Jump to latest' })).toBeVisible();
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('preview-test-chunk', { detail: ',{"time":"11:00","title":"Newest stop"}' })));
+  await expect(preview.getByText('Newest stop', { exact: true })).toHaveCount(1);
+  expect(await preview.evaluate((el) => el.scrollTop)).toBeLessThan(2);
+  await panel.getByRole('button', { name: 'Jump to latest' }).click();
+  await expect.poll(() => preview.evaluate((el) => el.scrollHeight - el.scrollTop - el.clientHeight)).toBeLessThan(2);
+  await panel.getByRole('tab', { name: 'JSON', exact: true }).click();
+  expect(Math.abs((await frame.boundingBox())!.height - initialHeight)).toBeLessThan(2);
+  await expect.poll(() => panel.getByLabel('Live trip data').evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+  await panel.getByRole('button', { name: 'Stop', exact: true }).click();
+  await expect(panel).toHaveCount(0);
+});
+
 test('repairs malformed output once, without bothering the traveller', async ({ page }) => {
   await useLab(page, /Bad JSON, then fixed/);
   await plan(page);

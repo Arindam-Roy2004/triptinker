@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'motion/react';
-import { useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowDown } from '@phosphor-icons/react';
 import { formatTime, pad2 } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { livePlan, type LivePlan } from '../partial-json';
@@ -99,8 +100,6 @@ export function RunPanel({ state, onCancel }: { state: Running; onCancel: () => 
   const steps = buildSteps(state, plan);
   const searched = state.stage === 'searching' || state.sources !== null;
   const tasks: PlanningTask[] = steps.map((step) => ({ id: step.id, label: step.title, status: step.status, detail: step.detail }));
-  const stopCount = plan?.days.reduce((n, day) => n + day.stops.length, 0) ?? 0;
-  const previewHeight = Math.min(420, Math.max(240, 100 + (plan?.days.length ?? 0) * 30 + stopCount * 27));
   const line = statusLine(state, plan, elapsed);
   const [view, setView] = useState<'preview' | 'json'>('preview');
   const root = useRef<HTMLElement>(null);
@@ -111,16 +110,16 @@ export function RunPanel({ state, onCancel }: { state: Running; onCancel: () => 
   }, [reduce]);
 
   return (
-    <section ref={root} aria-label="Generation progress" aria-busy="true" className="grid grid-cols-1 items-start gap-5 border-t border-line bg-surface p-4 sm:gap-6 sm:p-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+    <section ref={root} aria-label="Generation progress" aria-busy="true" className="grid grid-cols-1 items-start gap-5 border-t border-line bg-surface p-4 sm:gap-6 sm:p-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-stretch">
       <ThinkingState label={state.kind === 'refine' ? 'Revising' : 'Thinking'} detail={line.text} elapsed={elapsed} onStop={onCancel}>
         {searched && <WebSearch query={state.searchQuery} sources={state.sources} searching={state.stage === 'searching'} elapsed={elapsed} />}
         <TaskList tasks={tasks} />
       </ThinkingState>
 
       {/* Live preview / raw JSON */}
-      <div className="min-w-0">
-        <WindowFrame title={view === 'preview' ? 'Live plan' : 'Trip data'} action={<ViewToggle value={view} onChange={setView} />} className="rounded-xl border border-line shadow-none" bodyClassName="overflow-hidden">
-          <div className="h-[min(var(--preview-height),20rem)] transition-[height] duration-300 motion-reduce:transition-none sm:h-[var(--preview-height)]" style={{ '--preview-height': `${view === 'json' ? 360 : previewHeight}px` } as CSSProperties}>
+      <div role="region" aria-label="Live plan panel" className="relative min-w-0 lg:min-h-72">
+        <WindowFrame title={view === 'preview' ? 'Live plan' : 'Trip data'} action={<ViewToggle value={view} onChange={setView} />} className="h-[22rem] rounded-xl border border-line shadow-none lg:absolute lg:inset-0 lg:h-full" bodyClassName="overflow-hidden">
+          <div className="h-full min-h-0">
             {view === 'preview' ? <LivePreview plan={plan} writing={state.stage === 'drafting' || state.stage === 'connecting'} /> : <RawJson raw={state.raw} />}
           </div>
         </WindowFrame>
@@ -153,31 +152,58 @@ function ViewToggle({ value, onChange }: { value: 'preview' | 'json'; onChange: 
   );
 }
 
-/** Keeps a scroller pinned to the bottom while content streams in. */
+/** Follow new content until the reader scrolls up; preserve their place while they read. */
 function usePinnedToBottom<T extends HTMLElement>(dep: unknown) {
   const ref = useRef<T>(null);
+  const follow = useRef(true);
+  const [following, setFollowing] = useState(true);
   useEffect(() => {
     const el = ref.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (!el) return;
+    const onScroll = () => {
+      const next = el.scrollHeight - el.scrollTop - el.clientHeight < 32;
+      if (next !== follow.current) {
+        follow.current = next;
+        setFollowing(next);
+      }
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
+  useEffect(() => {
+    const el = ref.current;
+    if (el && follow.current) el.scrollTop = el.scrollHeight;
   }, [dep]);
-  return ref;
+  const jump = () => {
+    follow.current = true;
+    setFollowing(true);
+    if (ref.current) ref.current.scrollTop = ref.current.scrollHeight;
+  };
+  return { ref, following, jump };
+}
+
+function JumpToLatest({ onClick }: { onClick: () => void }) {
+  return <button type="button" onClick={onClick} className="absolute bottom-3 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-line-strong bg-surface px-3 py-1.5 text-[11px] font-medium text-ink shadow-lift transition-colors hover:bg-sunken focus-visible:outline-2 focus-visible:outline-brand"><ArrowDown size={12} aria-hidden />Jump to latest</button>;
 }
 
 function RawJson({ raw }: { raw: string }) {
   const tail = raw.length > TAIL ? raw.slice(-TAIL) : raw;
   const highlighted = useMemo(() => highlightJson(tail), [tail]);
-  const ref = usePinnedToBottom<HTMLPreElement>(raw);
+  const { ref, following, jump } = usePinnedToBottom<HTMLPreElement>(raw);
   return (
-    <pre ref={ref} className="mask-fade-top h-full overflow-auto p-4 font-mono text-[12px] leading-5 break-words whitespace-pre-wrap text-ink">
+    <div className="relative h-full min-h-0">
+    <pre ref={ref} tabIndex={0} aria-label="Live trip data" className="pane-scroll h-full overflow-auto p-4 font-mono text-[12px] leading-5 break-words whitespace-pre-wrap text-ink focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand">
       {raw.length > TAIL && <span className="text-subtle">…{'\n'}</span>}
       {highlighted}
       <span className="ml-px inline-block h-3.5 w-[7px] animate-caret bg-brand align-middle" aria-hidden />
       {!raw && <span className="text-subtle"> Waiting for trip data…</span>}
     </pre>
+    {!following && <JumpToLatest onClick={jump} />}
+    </div>
   );
 }
 
-const enter = { initial: { opacity: 0, y: 6, filter: 'blur(4px)' }, animate: { opacity: 1, y: 0, filter: 'blur(0px)' }, transition: { duration: 0.32, ease } };
+const enter = { initial: { opacity: 0, y: 3 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.2, ease } };
 
 function GhostRow({ width }: { width: string }) {
   return (
@@ -192,12 +218,13 @@ function GhostRow({ width }: { width: string }) {
 function LivePreview({ plan, writing }: { plan: LivePlan | null; writing: boolean }) {
   const reduce = useReducedMotion();
   const count = plan ? plan.days.reduce((n, d) => n + d.stops.length + 1, 0) : 0;
-  const ref = usePinnedToBottom<HTMLDivElement>(count);
+  const { ref, following, jump } = usePinnedToBottom<HTMLDivElement>(count);
   const motionProps = reduce ? {} : enter;
   const days = plan?.days ?? [];
 
   return (
-    <div ref={ref} className="mask-fade-top h-full overflow-auto px-5 pt-4 pb-6" aria-live="off">
+    <div className="relative h-full min-h-0">
+    <div ref={ref} tabIndex={0} role="region" aria-label="Live itinerary preview" className="pane-scroll h-full overflow-y-auto overflow-x-hidden px-5 pt-4 pb-6 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand" aria-live="off">
       {plan?.destination || plan?.title ? (
         <motion.div {...motionProps} className="mb-4">
           {plan.destination && <p className="label text-[11px] text-brand">{plan.destination}</p>}
@@ -244,6 +271,8 @@ function LivePreview({ plan, writing }: { plan: LivePlan | null; writing: boolea
           </li>
         )}
       </ol>
+    </div>
+    {!following && <JumpToLatest onClick={jump} />}
     </div>
   );
 }
