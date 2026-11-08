@@ -14,7 +14,7 @@ export function ThemeToggle() {
           {resolved === 'dark' ? <Sun /> : <Moon />}
         </Button>
       </TooltipTrigger>
-      <TooltipContent>{resolved === 'dark' ? 'Day' : 'Night'}</TooltipContent>
+      <TooltipContent>{resolved === 'dark' ? 'Light mode' : 'Dark mode'}</TooltipContent>
     </Tooltip>
   );
 }

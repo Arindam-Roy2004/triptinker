@@ -99,7 +99,7 @@ function Row({ stop, index, selected, onSelect, inline, detail }: { stop: Stop; 
           aria-current={!inline && selected ? 'true' : undefined}
           className="grid min-w-0 flex-1 grid-cols-[3.25rem_minmax(0,1fr)_auto] items-start gap-x-3 py-4 pl-6 text-left outline-offset-[-2px]"
         >
-          <span className="label tabular pt-0.5 text-[12px] text-muted">{stop.time ?? '—'}</span>
+          <span className="label tabular pt-0.5 text-[12px] text-muted">{stop.time ?? 'Any'}</span>
           <span className="min-w-0">
             <span className="block text-[15px] leading-[21px] font-medium text-pretty text-ink">{stop.title}</span>
             <span className="mt-1 flex flex-wrap items-center gap-x-1.5 text-[13px] text-muted">
@@ -119,7 +119,7 @@ function Row({ stop, index, selected, onSelect, inline, detail }: { stop: Stop; 
           aria-roledescription="sortable stop"
           className="mr-2 hidden w-8 touch-none place-items-center self-center rounded-lg py-2 text-subtle opacity-0 transition-opacity group-hover:opacity-100 hover:bg-sunken hover:text-ink focus-visible:opacity-100 sm:grid"
         >
-          <DotsSixVertical size={16} weight="bold" />
+          <DotsSixVertical size={16} />
         </button>
       </div>
       <AnimatePresence initial={false}>

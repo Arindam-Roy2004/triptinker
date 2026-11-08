@@ -2,12 +2,24 @@ import { motion, useMotionValueEvent, useReducedMotion, useScroll } from 'motion
 import { useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
-export function Logo() {
+const HEADER_SPRING = { type: 'spring', stiffness: 380, damping: 36, mass: 0.8 } as const;
+
+export function Logo({ compact = false }: { compact?: boolean }) {
+  const reduce = useReducedMotion();
   return (
-    <span className="flex items-center gap-2.5">
-      {/* The Roamfar mark: a snow-capped peak with a road winding up to it. */}
-      <img src="/roamfar-mark.png" alt="" width={128} height={105} className="h-7 w-auto select-none" draggable={false} />
-      <span className="wordmark text-[19px] leading-none text-ink">ROAMFAR</span>
+    <span className="flex shrink-0 items-center gap-2">
+      <motion.img
+        src="/triptinker-logo.svg"
+        alt=""
+        width={40}
+        height={36}
+        draggable={false}
+        initial={false}
+        animate={{ width: compact ? 28 : 40, height: compact ? 24 : 36 }}
+        transition={reduce ? { duration: 0 } : HEADER_SPRING}
+        className="shrink-0 select-none object-contain dark:invert"
+      />
+      <span className="wordmark whitespace-nowrap text-[21px] leading-none text-ink">TripTinker</span>
     </span>
   );
 }
@@ -15,7 +27,7 @@ export function Logo() {
 /** Floating glass bar: transparent at rest, it condenses into a blurred pill on scroll. */
 export function SiteHeader({ children }: { children: ReactNode }) {
   const { scrollY } = useScroll();
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolled, setScrolled] = useState(() => window.scrollY > 12);
   const reduce = useReducedMotion();
   useMotionValueEvent(scrollY, 'change', (y) => setScrolled(y > 12));
   return (
@@ -23,7 +35,7 @@ export function SiteHeader({ children }: { children: ReactNode }) {
       <motion.div
         initial={false}
         animate={{ maxWidth: scrolled ? 840 : 1024, borderRadius: scrolled ? 999 : 16 }}
-        transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 380, damping: 36, mass: 0.8 }}
+        transition={reduce ? { duration: 0 } : HEADER_SPRING}
         className={cn(
           'mx-auto flex h-16 items-center justify-between gap-4 border px-3 transition-[background-color,border-color,box-shadow] duration-300 sm:px-4',
           scrolled
@@ -31,8 +43,8 @@ export function SiteHeader({ children }: { children: ReactNode }) {
             : 'border-transparent bg-transparent',
         )}
       >
-        <a href="/" aria-label="Roamfar, home" className="rounded-md">
-          <Logo />
+        <a href="/" aria-label="TripTinker, home" className="inline-flex h-12 shrink-0 items-center rounded-md">
+          <Logo compact={scrolled} />
         </a>
         <nav aria-label="Tools" className="flex items-center gap-1.5">
           {children}

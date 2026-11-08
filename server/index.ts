@@ -26,7 +26,7 @@ if (config.production) {
 
 server.listen(config.port, () => {
   const model = isConfigured() ? `model ${config.provider.model}` : 'no model configured (sample + failure lab only)';
-  console.log(`\n  Roamfar → http://localhost:${config.port}  ·  ${model}\n`);
+  console.log(`\n  TripTinker → http://localhost:${config.port}  ·  ${model}\n`);
 });
 server.on('error', (error: NodeJS.ErrnoException) => {
   if (error.code === 'EADDRINUSE') console.error(`\n  Port ${config.port} is in use. Set PORT=<free port> in .env or the shell.\n`);

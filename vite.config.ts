@@ -19,7 +19,7 @@ export default defineConfig({
         // Long-lived vendor chunks cache across deploys; app code changes most often.
         manualChunks: {
           motion: ['motion/react'],
-          ui: ['radix-ui', 'sonner', 'lucide-react'],
+          ui: ['radix-ui', 'sonner'],
           dnd: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/modifiers', '@dnd-kit/utilities'],
           zod: ['zod'],
         },

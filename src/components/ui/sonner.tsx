@@ -9,10 +9,10 @@ function Toaster(props: ToasterProps) {
       theme={resolved}
       className="toaster group"
       icons={{
-        success: <CheckCircle weight="fill" className="size-4 text-ok" />,
+        success: <CheckCircle className="size-4 text-ok" />,
         info: <Info className="size-4" />,
-        warning: <Warning weight="fill" className="size-4 text-warn" />,
-        error: <WarningOctagon weight="fill" className="size-4 text-err" />,
+        warning: <Warning className="size-4 text-warn" />,
+        error: <WarningOctagon className="size-4 text-err" />,
         loading: <SpinnerGap className="size-4 animate-spin" />,
       }}
       toastOptions={{

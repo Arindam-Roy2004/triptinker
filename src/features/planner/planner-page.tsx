@@ -45,9 +45,9 @@ const EMPTY_FORM: TripRequest = { brief: '', days: null, pace: 'balanced' };
 
 const EXAMPLES = [
   { label: 'Kyoto in autumn', brief: 'Four days in Kyoto in mid-November for the autumn leaves. Temples and gardens, quiet mornings, vegetarian-friendly food, one day trip to Nara.' },
-  { label: 'Mexico City + toddler', brief: 'A long weekend in Mexico City with our two-year-old. Parks, markets and great tacos, back at the hotel for naps around 1pm.' },
+  { label: 'Mexico City with kids', brief: 'A long weekend in Mexico City with our two-year-old. Parks, markets and great tacos, back at the hotel for naps around 1pm.' },
   { label: 'Rainy Edinburgh', brief: 'Two days in Edinburgh in February that still work if it rains all day. History, cosy pubs, one whisky tasting, no hiking.' },
-  { label: 'Rome for food', brief: 'Three days in Rome for people who travel to eat: markets, trattorias, a cooking class, and one big sight a day.' },
+  { label: 'Food in Rome', brief: 'Three days in Rome for people who travel to eat: markets, trattorias, a cooking class, and one big sight a day.' },
 ];
 
 /** Frosted chip over the scene, for the example briefs and the sample. */
@@ -146,7 +146,7 @@ export function PlannerPage() {
           store.load({ id: newId(), source: 'ai', request, itinerary, model: meta.model, meta, warnings, createdAt: now, updatedAt: now });
           setActiveDayId(null);
           setPending(null);
-          if (warnings.length || meta.repairedFrom) toast('Validated, with notes', { description: 'What was fixed is listed under the trip summary.' });
+          if (warnings.length || meta.repairedFrom) toast('Plan ready', { description: 'Review the notes below.' });
           scrollTo('trip');
         },
         simulate,
@@ -173,7 +173,7 @@ export function PlannerPage() {
         ({ itinerary, warnings }) => {
           const diff = diffItineraries(base, itinerary);
           if (diff.isEmpty) {
-            toast('The model made no changes', { description: 'Try describing the change more specifically.' });
+            toast('No changes made', { description: 'Try a more specific request.' });
             return;
           }
           setPending({ instruction: text, diff, warnings, next: itinerary });
@@ -221,8 +221,8 @@ export function PlannerPage() {
 
   const save = () => {
     if (!trip) return;
-    if (library.save(trip)) toast.success('Trip saved', { description: 'Find it under Saved.' });
-    else toast.error('Could not save', { description: 'Browser storage is full or unavailable.' });
+    if (library.save(trip)) toast.success('Trip saved');
+    else toast.error('Could not save trip', { description: 'Download your trip to keep a copy.' });
   };
 
   const remove = (stopId: string) => {
@@ -259,7 +259,7 @@ export function PlannerPage() {
 
   const runStatus = (kind: 'generate' | 'refine') => {
     if (runKind !== kind) return null;
-    if (state.status === 'running') return <RunPanel key="run" state={state} model={health?.model ?? null} onCancel={generation.cancel} />;
+    if (state.status === 'running') return <RunPanel key="run" state={state} onCancel={generation.cancel} />;
     if (problem) {
       return (
         <ProblemCell
@@ -283,7 +283,6 @@ export function PlannerPage() {
     <div className="relative isolate flex min-h-dvh flex-col overflow-x-clip">
       <HeroGlow />
       <SiteHeader>
-        {health?.simulation && <FailureLab value={simulate} onChange={setSimulate} />}
         <LibrarySheet
           trips={library.trips}
           currentId={trip?.id ?? null}
@@ -300,26 +299,19 @@ export function PlannerPage() {
       <main className="mx-auto w-full max-w-[1104px] flex-1 px-4 sm:px-6 xl:px-0">
         {/* Hero */}
         <section aria-labelledby="hero-title" className="flex flex-col items-center gap-6 pt-8 pb-10 text-center sm:pt-10 md:pb-12">
-          <button type="button" onClick={focusPrompt} className="group flex max-w-full items-stretch overflow-hidden rounded-lg border border-ink-strong text-left">
-            <span className="label flex items-center bg-ink-strong px-3 text-[11px] text-bg">New</span>
-            <span className="flex min-w-0 items-center gap-2 bg-surface px-3 py-1.5 text-[13px] text-ink transition-colors group-hover:bg-sunken">
-              <span className="truncate">Turn one sentence into a day-by-day plan you can edit</span>
-              <ArrowRight size={13} className="shrink-0 transition-transform group-hover:translate-x-0.5" />
-            </span>
-          </button>
           <div className="flex flex-col gap-4">
             <h1 id="hero-title" className="font-display text-[42px] leading-[1.06] text-ink-strong sm:text-[56px] lg:text-[68px] lg:leading-[1.06]">
               Where to <em>next</em>? <br className="hidden sm:inline" />
               Say it in <em>one</em> sentence.
             </h1>
             <p className="mx-auto max-w-2xl text-[16px] leading-7 text-muted md:text-[18px] md:leading-7">
-              Roamfar turns your brief into a day-by-day itinerary — <br className="hidden md:inline" />
-              streamed, checked line by line, and yours to reorder and refine.
+              Get a day-by-day plan built around your interests. <br className="hidden md:inline" />
+              Move stops, save your trip, or ask AI to make changes.
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Button variant="secondary" onClick={openSample}>
-              Open a sample
+              View sample
             </Button>
             <Button variant="primary" onClick={focusPrompt}>
               Plan a trip <ArrowRight />
@@ -367,7 +359,7 @@ export function PlannerPage() {
               </div>
               {notConfigured && (
                 <p className="frost mt-1 rounded-xl px-3 py-2 text-center text-[13px] text-ink shadow-[0_0_0_1px_rgb(0_0_0/0.08)]">
-                  No model key on the server yet. Open the sample, or try the failure lab.
+                  AI planning is unavailable. You can still view a sample trip.
                 </p>
               )}
             </div>
@@ -439,26 +431,26 @@ export function PlannerPage() {
       </main>
 
       <footer className="mx-auto mt-24 flex w-full max-w-[1104px] flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-8 text-[13px] text-muted sm:px-6 xl:px-0">
-        <span>Plans are AI-generated. Check opening hours and bookings before you go.</span>
-        {health?.configured && health.model && <span className="label text-[11px] text-subtle">{health.model}</span>}
+        <span>Check opening hours and bookings before you go.</span>
+        {health?.simulation && <FailureLab value={simulate} onChange={setSimulate} />}
       </footer>
 
       <AlertDialog open={confirmNew} onOpenChange={setConfirmNew}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="text-[22px] font-medium tracking-[-0.01em]">Start a new trip?</AlertDialogTitle>
-            <AlertDialogDescription>This trip isn't saved. Save it first if you want to come back to it.</AlertDialogDescription>
+            <AlertDialogDescription>This trip has unsaved changes.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel asChild>
               <Button variant="ghost">Keep editing</Button>
             </AlertDialogCancel>
             <Button variant="secondary" onClick={() => (save(), startNew())}>
-              Save, then start
+              Save and start
             </Button>
             <AlertDialogAction asChild>
               <Button variant="danger" onClick={startNew}>
-                Discard
+                Start without saving
               </Button>
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowSquareOut, ArrowUp, CalendarBlank, Lightbulb, Trash } from '@phosphor-icons/react';
+import { ArrowDown, ArrowUp, CalendarBlank, Lightbulb, MapPinLine, Trash } from '@phosphor-icons/react';
 import type { Day, Stop } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { WordsIn } from '@/components/ui/pulse-line';
@@ -52,16 +52,16 @@ export function StopDetail({ stop, index, count, dayId, days, destination, onMov
       )}
       {stop.tip && (
         <p className="flex gap-3 rounded-xl border border-brand/15 bg-brand-wash px-4 py-3 text-[14px] leading-[21px] text-ink">
-          <Lightbulb size={16} weight="duotone" className="mt-0.5 shrink-0 text-brand" />
+          <Lightbulb size={16} className="mt-0.5 shrink-0 text-brand" />
           <span>
-            <span className="label mr-1 text-[11px] text-brand">Local tip</span> {stop.tip}
+            <span className="label mr-1 text-[11px] text-brand">Tip</span> {stop.tip}
           </span>
         </p>
       )}
       <div className="flex flex-wrap items-center gap-2">
         <Button asChild size="sm" variant="secondary">
           <a href={mapsSearchUrl(stop.title, destination, stop.area)} target="_blank" rel="noreferrer">
-            Maps <ArrowSquareOut />
+            <MapPinLine /> Maps
           </a>
         </Button>
         <span className="flex-1" />
@@ -75,7 +75,7 @@ export function StopDetail({ stop, index, count, dayId, days, destination, onMov
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button size="sm" variant="ghost" aria-label="Move to another day">
-                <CalendarBlank /> Day
+                <CalendarBlank /> Move day
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-60 rounded-xl">

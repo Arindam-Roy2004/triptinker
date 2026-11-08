@@ -23,7 +23,7 @@ export function ShimmerLabel({ children, number, as: Tag = 'p', className }: { c
       className={cn('shimmer-text shimmer-rest label', className)}
       style={{ '--shimmer-duration': '3.4s', '--spread': `${Math.max(24, children.length * 1.5)}px`, '--shimmer-base': 'var(--brand)', '--shimmer-band': 'var(--shimmer-light)' } as CSSProperties}
     >
-      {number && <><span className="tabular mr-2">{number}</span><span aria-hidden className="mr-2">—</span></>}
+      {number && <span className="tabular mr-2">{number}</span>}
       {children}
     </Tag>
   );

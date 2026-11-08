@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 const BRIEF = 'Three days in Lisbon with trams, tiles and seafood.';
 
 async function useLab(page: Page, scenario: RegExp) {
-  await page.getByRole('button', { name: /Failure lab/ }).click();
+  await page.getByRole('button', { name: /Test mode/ }).click();
   await page.getByRole('radio', { name: scenario }).click();
   await page.keyboard.press('Escape');
 }
@@ -30,9 +30,9 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('sample trip: inspect, remove with undo, reorder, save and reload', async ({ page }) => {
-  await page.getByRole('button', { name: 'Open a sample' }).click();
+  await page.getByRole('button', { name: 'View sample' }).click();
   await expect(tripTitle(page)).toBeVisible();
-  await expect(page.getByText('Hand-written sample')).toBeVisible();
+  await expect(page.getByText('Sample', { exact: true })).toBeVisible();
 
   await openStop(page, 'Castelo de São Jorge');
   await expect(page.getByText('Walk the ramparts clockwise').first()).toBeVisible();
@@ -63,14 +63,14 @@ test('previews the plan as it streams, then renders only the validated plan', as
   await useLab(page, /Slow model/);
   await plan(page);
   await expect(page.getByText('Planning your trip…')).toBeVisible();
-  await expect(page.getByText('response.json — streaming')).toBeVisible();
+  await expect(page.getByText('Live plan', { exact: true })).toBeVisible();
   // The preview fills in from the partial JSON: the title shows up before the run is done.
   const panel = page.getByRole('region', { name: 'Generation progress' });
   await expect(panel.getByText('Three slow days in Lisbon')).toBeVisible({ timeout: 15_000 });
   await panel.getByRole('tab', { name: 'JSON' }).click();
   await expect(panel.locator('pre').getByText('"status"')).toBeVisible();
   await expect(tripTitle(page)).toBeVisible({ timeout: 60_000 });
-  await expect(page.getByText('Validated', { exact: true })).toBeVisible();
+  await expect(page.getByText('Ready', { exact: true })).toBeVisible();
 });
 
 test('example chips send immediately', async ({ page }) => {
@@ -82,22 +82,22 @@ test('example chips send immediately', async ({ page }) => {
 test('repairs malformed output once and says so', async ({ page }) => {
   await useLab(page, /Bad JSON, then fixed/);
   await plan(page);
-  await expect(page.getByText('Validated after a repair')).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText('Parsed after one repair')).toBeVisible();
+  await expect(page.getByText('Corrected after a retry')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('The first draft had a formatting issue.')).toBeVisible();
 });
 
 test('a failed run explains itself, offers a retry and keeps the plan', async ({ page }) => {
-  await page.getByRole('button', { name: 'Open a sample' }).click();
+  await page.getByRole('button', { name: 'View sample' }).click();
   await useLab(page, /Bad JSON twice/);
   await plan(page);
-  await expect(page.getByRole('alert').getByText('The answer wasn’t valid JSON')).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText('your current plan is unchanged')).toBeVisible();
+  await expect(page.getByRole('alert').getByText('We couldn’t finish your plan')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('Your current trip is unchanged.')).toBeVisible();
   await expect(tripTitle(page)).toBeVisible();
-  await expect(page.getByText('Hand-written sample')).toBeVisible();
+  await expect(page.getByText('Sample', { exact: true })).toBeVisible();
 
   await useLab(page, /Clean answer/);
   await page.getByRole('button', { name: 'Try again' }).click();
-  await expect(page.getByText('Validated', { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('Ready', { exact: true })).toBeVisible({ timeout: 15_000 });
 });
 
 test('salvages partial output and lists what was cleaned up', async ({ page }) => {
@@ -110,7 +110,7 @@ test('salvages partial output and lists what was cleaned up', async ({ page }) =
 test('an unplannable brief gets guidance, not a fake plan', async ({ page }) => {
   await useLab(page, /Not a trip/);
   await plan(page, 'asdf qwerty zxcv');
-  await expect(page.getByText('That brief needs a little more')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('Tell us more about your trip')).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('heading', { level: 2 })).toHaveCount(0);
 });
 
@@ -119,11 +119,11 @@ test('a stale response never replaces what the user switched to', async ({ page 
   await useLab(page, /Slow model/);
   await plan(page, 'Ten days across Japan, mostly trains and food.');
   await expect(page.getByText('Planning your trip…')).toBeVisible();
-  await page.getByRole('button', { name: 'Open a sample' }).click();
-  await expect(page.getByText('Hand-written sample')).toBeVisible();
+  await page.getByRole('button', { name: 'View sample' }).click();
+  await expect(page.getByText('Sample', { exact: true })).toBeVisible();
   await page.waitForTimeout(24_000); // longer than the slow simulation takes to finish
-  await expect(page.getByText('Hand-written sample')).toBeVisible();
-  await expect(page.getByText('Validated', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Sample', { exact: true })).toBeVisible();
+  await expect(page.getByText('Ready', { exact: true })).toHaveCount(0);
 });
 
 test('stop cancels the run cleanly', async ({ page }) => {
@@ -131,25 +131,25 @@ test('stop cancels the run cleanly', async ({ page }) => {
   await plan(page);
   await page.getByRole('button', { name: 'Stop generating' }).click();
   await expect(page.getByText('Planning your trip…')).toHaveCount(0);
-  await expect(page.getByText('Structured JSON')).toBeVisible();
+  await expect(page.getByText('Day by day', { exact: true })).toBeVisible();
   // Nothing lands later, and the brief is still there to edit and resend.
   await expect(page.getByLabel('Describe your trip')).toHaveValue(BRIEF);
   await expect(page.getByRole('heading', { level: 2 })).toHaveCount(0);
 });
 
 test('refinements are reviewed before they are applied', async ({ page }) => {
-  await page.getByRole('button', { name: 'Open a sample' }).click();
+  await page.getByRole('button', { name: 'View sample' }).click();
   await useLab(page, /Clean answer/);
   await page.getByLabel('Describe a change to the plan').fill('Add a coffee stop on day one');
   await page.getByRole('button', { name: 'Send change request' }).click();
-  const review = page.getByRole('region', { name: 'Proposed changes' });
+  const review = page.getByRole('region', { name: 'Review changes' });
   await expect(review).toBeVisible({ timeout: 15_000 });
   await review.getByRole('button', { name: 'Discard' }).click();
   await expect(review).toHaveCount(0);
 });
 
 test('layout never scrolls horizontally', async ({ page }) => {
-  await page.getByRole('button', { name: 'Open a sample' }).click();
+  await page.getByRole('button', { name: 'View sample' }).click();
   await expect(tripTitle(page)).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);

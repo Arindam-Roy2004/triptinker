@@ -4,10 +4,10 @@ import { countStops } from './operations';
 export type Check = { label: string; detail: string; status: 'ok' | 'warn' };
 
 const REPAIRED: Partial<Record<ErrorCode, string>> = {
-  MALFORMED_JSON: 'invalid JSON',
-  SCHEMA_MISMATCH: 'the wrong structure',
-  EMPTY_OUTPUT: 'an empty answer',
-  TRUNCATED: 'a cut-off answer',
+  MALFORMED_JSON: 'a formatting issue',
+  SCHEMA_MISMATCH: 'missing trip details',
+  EMPTY_OUTPUT: 'no plan',
+  TRUNCATED: 'an incomplete plan',
 };
 
 /** What we verified about a result, in plain words, for the validation panel. */
@@ -20,7 +20,7 @@ export function buildChecks(itinerary: Itinerary, meta: ResultMeta | null, warni
   }
   const checks: Check[] = [
     meta.repairedFrom
-      ? { label: 'Parsed after one repair', detail: `First draft had ${REPAIRED[meta.repairedFrom] ?? 'a problem'}`, status: 'warn' }
+      ? { label: 'Corrected after a retry', detail: `The first draft had ${REPAIRED[meta.repairedFrom] ?? 'a problem'}.`, status: 'warn' }
       : { label: 'Parsed as JSON', detail: 'First attempt', status: 'ok' },
     { label: 'Matches the schema', detail: `${itinerary.days.length} days · ${countStops(itinerary)} stops, every field typed`, status: 'ok' },
     ...warnings.map((w) => ({ label: 'Cleaned up', detail: w, status: 'warn' as const })),

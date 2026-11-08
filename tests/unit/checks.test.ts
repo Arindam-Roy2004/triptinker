@@ -16,7 +16,7 @@ describe('buildChecks', () => {
 
   it('flags repairs and salvage warnings', () => {
     const checks = buildChecks(sample(), { model: 'm', attempts: 2, durationMs: 1000, repairedFrom: 'MALFORMED_JSON' }, ['Removed 1 stop the model returned without a name.']);
-    expect(checks[0]).toMatchObject({ label: 'Parsed after one repair', status: 'warn', detail: 'First draft had invalid JSON' });
+    expect(checks[0]).toMatchObject({ label: 'Corrected after a retry', status: 'warn', detail: 'The first draft had a formatting issue.' });
     expect(checks.filter((c) => c.status === 'warn')).toHaveLength(2);
   });
 });

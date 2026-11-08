@@ -4,7 +4,7 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 /**
- * Vibrant's control edges and hover colour mixes, retaining Roamfar's palette,
+ * Vibrant's control edges and hover colour mixes, retaining TripTinker's palette,
  * typography, dimensions and existing press animation.
  */
 const buttonVariants = cva(

@@ -1,4 +1,4 @@
-import { CheckCircle, Clock, PlugsConnected, ShieldCheck, Sparkle, Wrench, type Icon } from '@phosphor-icons/react';
+import { ArrowClockwise, CheckCircle, Clock, MapTrifold, ShieldCheck, Sparkle, type Icon } from '@phosphor-icons/react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type { Stage } from '@shared/schema';
@@ -21,24 +21,24 @@ const ease = [0.22, 1, 0.36, 1] as const;
 const ORDER: Stage[] = ['connecting', 'drafting', 'validating'];
 const TAIL = 7_000; // only the end of the stream is on screen, so only highlight the end
 
-function steps(state: Running, model: string | null): Step[] {
+function steps(state: Running): Step[] {
   const current = state.stage === 'repairing' ? 'drafting' : state.stage;
   const at = ORDER.indexOf(current);
   const status = (i: number): Status => (i < at ? 'done' : i === at ? 'active' : 'todo');
   const { days, stops } = state.progress;
   const list: Step[] = [
-    { id: 'connect', icon: PlugsConnected, title: 'Connect', detail: model ? `Streaming from ${model.split('/').at(-1)}` : 'Opening a stream to the model', status: status(0) },
+    { id: 'connect', icon: MapTrifold, title: 'Getting started', detail: 'Reading your trip details', status: status(0) },
     {
       id: 'draft',
       icon: Sparkle,
-      title: state.repairReason ? 'Redraft' : 'Draft',
-      detail: days || stops ? `${days} day${days === 1 ? '' : 's'} · ${stops} stop${stops === 1 ? '' : 's'} so far` : 'Writing the itinerary',
+      title: state.repairReason ? 'Trying again' : 'Planning',
+      detail: days || stops ? `${days} day${days === 1 ? '' : 's'} · ${stops} stop${stops === 1 ? '' : 's'}` : 'Finding stops for your days',
       status: status(1),
     },
-    { id: 'validate', icon: ShieldCheck, title: 'Validate', detail: 'Checking every day and stop', status: status(2) },
+    { id: 'validate', icon: ShieldCheck, title: 'Checking', detail: 'Making sure your plan is complete', status: status(2) },
   ];
   if (state.repairReason) {
-    list.splice(1, 0, { id: 'repair', icon: Wrench, title: 'Repair', detail: `${state.repairReason} Asked the model to fix it — once.`, status: 'done' });
+    list.splice(1, 0, { id: 'repair', icon: ArrowClockwise, title: 'Retrying', detail: 'The first draft needed a correction', status: 'done' });
   }
   return list;
 }
@@ -58,11 +58,11 @@ function useNow(active: boolean) {
  * window on a crosshatched cell on the right that previews the days and stops as they arrive.
  * The raw JSON is one tab away.
  */
-export function RunPanel({ state, model, onCancel }: { state: Running; model: string | null; onCancel: () => void }) {
+export function RunPanel({ state, onCancel }: { state: Running; onCancel: () => void }) {
   const reduce = useReducedMotion();
   const now = useNow(true);
   const elapsed = now - state.startedAt;
-  const list = steps(state, model);
+  const list = steps(state);
   const [view, setView] = useState<'preview' | 'json'>('preview');
   const root = useRef<HTMLElement>(null);
 
@@ -80,7 +80,7 @@ export function RunPanel({ state, model, onCancel }: { state: Running; model: st
             <Shimmer as="p" duration={1.8} className="text-[15px] font-medium">
               {state.kind === 'refine' ? 'Revising your plan…' : 'Planning your trip…'}
             </Shimmer>
-            <p className="mt-0.5 text-[13px] text-muted">{elapsed > 20_000 ? 'Taking longer than usual. Keep waiting or stop — nothing is lost.' : 'Shown as a draft until every stop passes validation.'}</p>
+            <p className="mt-0.5 text-[13px] text-muted">{elapsed > 20_000 ? 'Still working. You can stop at any time.' : 'Your plan will appear as it takes shape.'}</p>
           </div>
           <span className="label tabular flex shrink-0 items-center gap-1 text-[11px] text-muted" aria-label={`Elapsed ${Math.floor(elapsed / 1000)} seconds`}>
             <Clock size={13} /> {formatElapsed(elapsed)}
@@ -122,7 +122,7 @@ export function RunPanel({ state, model, onCancel }: { state: Running; model: st
       {/* Live preview / raw JSON */}
       <div className="crosshatch p-4 sm:p-8">
         <WindowFrame
-          title="response.json — streaming"
+          title={view === 'preview' ? 'Live plan' : 'Trip data'}
           action={<ViewToggle value={view} onChange={setView} />}
           className="h-[360px] lg:h-full lg:min-h-[380px]"
         >
@@ -176,7 +176,7 @@ function RawJson({ raw }: { raw: string }) {
       {raw.length > TAIL && <span className="text-subtle">…{'\n'}</span>}
       {highlighted}
       <span className="ml-px inline-block h-3.5 w-[7px] animate-caret bg-brand align-middle" aria-hidden />
-      {!raw && <span className="text-subtle"> waiting for the first token…</span>}
+      {!raw && <span className="text-subtle"> Waiting for trip data…</span>}
     </pre>
   );
 }
@@ -212,7 +212,7 @@ function LivePreview({ raw }: { raw: string }) {
             <ul className="mt-2 flex flex-col border-l border-line">
               {day.stops.map((stop, j) => (
                 <motion.li key={j} {...motionProps} className="grid grid-cols-[3.25rem_minmax(0,1fr)] gap-2 py-1 pl-3 text-[13px]">
-                  <span className="label tabular pt-px text-[11px] text-muted">{stop.time ?? '—'}</span>
+                  <span className="label tabular pt-px text-[11px] text-muted">{stop.time ?? 'Any'}</span>
                   <span className="truncate text-ink">{stop.title}</span>
                 </motion.li>
               ))}
@@ -223,7 +223,7 @@ function LivePreview({ raw }: { raw: string }) {
       <div className="mt-3 flex items-center gap-2 text-[12px] text-subtle">
         <span className="size-1.5 animate-pulse rounded-full bg-brand" aria-hidden />
         <Shimmer as="span" duration={1.5}>
-          {!raw ? 'Waiting for the first token…' : plan?.days.length ? 'Writing the next stop…' : 'Reading your brief…'}
+          {!raw ? 'Getting started…' : plan?.days.length ? 'Adding stops…' : 'Planning your days…'}
         </Shimmer>
       </div>
     </div>
@@ -254,10 +254,10 @@ function StepIcon({ step, reduce }: { step: Step; reduce: boolean }) {
       )}
       {step.status === 'done' ? (
         <motion.span initial={reduce ? false : { scale: 0.4 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 520, damping: 20 }} className="flex">
-          <CheckCircle size={14} weight="fill" />
+          <CheckCircle size={14} />
         </motion.span>
       ) : (
-        <Icon size={12} weight={step.status === 'active' ? 'bold' : 'regular'} />
+        <Icon size={14} />
       )}
     </span>
   );

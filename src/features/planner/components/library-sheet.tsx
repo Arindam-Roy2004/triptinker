@@ -1,4 +1,4 @@
-import { BookmarksSimple, Trash } from '@phosphor-icons/react';
+import { BookmarkSimple, Trash } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -16,22 +16,21 @@ export function LibrarySheet({ trips, currentId, onOpen, onDelete }: Props) {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" aria-label={`Saved trips (${trips.length})`}>
-          <BookmarksSimple />
+        <Button variant="ghost" aria-label={`Saved trips (${trips.length})`} className="px-2 sm:px-4">
+          <BookmarkSimple />
           <span className="hidden sm:inline">Saved</span>
           {trips.length > 0 && <span className="tabular rounded-md bg-sunken px-1.5 text-[11px] text-muted">{trips.length}</span>}
         </Button>
       </SheetTrigger>
       <SheetContent className="w-full gap-0 sm:max-w-md">
         <SheetHeader className="border-b border-line p-6">
-          <p className="label text-[11px] text-brand">Library</p>
           <SheetTitle className="text-[24px] font-normal tracking-[-0.02em]">Saved trips</SheetTitle>
-          <SheetDescription>Stored in this browser only.</SheetDescription>
+          <SheetDescription>Saved in this browser.</SheetDescription>
         </SheetHeader>
         {trips.length === 0 ? (
           <div className="p-8 text-center">
             <p className="text-[17px] font-medium">No saved trips yet</p>
-            <p className="mt-1 text-[15px] text-muted">Use “Save trip” on any itinerary to keep it here.</p>
+            <p className="mt-1 text-[15px] text-muted">Save a trip to find it here.</p>
           </div>
         ) : (
           <ul className="flex-1 overflow-y-auto">
@@ -59,7 +58,7 @@ export function LibrarySheet({ trips, currentId, onOpen, onDelete }: Props) {
                       Delete
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => setConfirming(null)}>
-                      Keep
+                      Cancel
                     </Button>
                   </div>
                 ) : (

@@ -24,19 +24,19 @@ export function FailureLab({ value, onChange }: { value: Simulation | null; onCh
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" aria-label={value ? `Failure lab: ${value}` : 'Failure lab'} className={cn(value && 'bg-warn-wash text-warn hover:bg-warn-wash')}>
-          <Flask weight={value ? 'fill' : 'regular'} />
-          <span className="hidden sm:inline">{value ? `Lab · ${value}` : 'Failure lab'}</span>
+        <Button variant="ghost" aria-label={value ? `Test mode: ${value}` : 'Test mode'} className={cn(value && 'bg-warn-wash text-warn hover:bg-warn-wash')}>
+          <Flask />
+          <span className="hidden sm:inline">{value ? 'Test mode on' : 'Test mode'}</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" sideOffset={8} className="w-80 p-0">
         <div className="border-b border-line p-4">
           <p className="label text-[11px] text-warn">Development only</p>
-          <p className="mt-1 text-[15px] font-medium">Failure lab</p>
+          <p className="mt-1 text-[15px] font-medium">Test mode</p>
           <p className="mt-0.5 text-[13px] text-muted">Route the next requests to a simulated model that fails in a specific way.</p>
         </div>
         <div role="radiogroup" aria-label="Simulated model behaviour" className="max-h-[min(60dvh,26rem)] overflow-y-auto p-1.5">
-          {[{ id: null, label: 'Off — use the real model', outcome: '' } as const, ...SCENARIOS].map((s) => {
+          {[{ id: null, label: 'Off: use the real model', outcome: '' } as const, ...SCENARIOS].map((s) => {
             const checked = value === s.id;
             return (
               <button

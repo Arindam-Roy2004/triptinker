@@ -67,7 +67,7 @@ export function createOpenAiProvider(config: ProviderConfig, fetchImpl: Fetch = 
             ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
             // OpenRouter attribution headers; ignored by other providers.
             'HTTP-Referer': 'https://github.com/roamfar-trip-planner',
-            'X-Title': 'Roamfar',
+            'X-Title': 'TripTinker',
           },
           body: JSON.stringify({
             model: config.model,

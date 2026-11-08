@@ -1,4 +1,4 @@
-import { ArrowUp, Minus, Plus, Square } from '@phosphor-icons/react';
+import { Minus, PaperPlaneTilt, Plus, SlidersHorizontal, StopCircle } from '@phosphor-icons/react';
 import { useReducedMotion } from 'motion/react';
 import { useEffect, useId, useImperativeHandle, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
 import { LIMITS, PACES, type Pace } from '@shared/schema';
@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 
 export type TripOptions = { days: number | null; pace: Pace };
 
-const PACE_LABEL: Record<Pace, string> = { relaxed: 'Relaxed', balanced: 'Balanced', packed: 'Packed' };
+const PACE_LABEL: Record<Pace, string> = { relaxed: 'Relaxed', balanced: 'Balanced', packed: 'Full days' };
 
 /** Types and deletes example prompts into the empty field, like someone thinking out loud. */
 function useTypewriter(lines: string[], enabled: boolean) {
@@ -140,7 +140,7 @@ export function PromptCard({ value, onChange, onSubmit, onStop, running, typed, 
           </div>
           <div className="flex items-center gap-2">
             <span className={cn('label tabular hidden text-[11px] text-subtle sm:inline', value.length > maxLength * 0.9 && 'text-warn')}>
-              {value.length > 0 ? `${value.length}/${maxLength}` : '↵ to send'}
+              {value.length > maxLength * 0.9 ? `${value.length}/${maxLength}` : 'Enter to send'}
             </span>
             {running ? (
               <button
@@ -149,7 +149,7 @@ export function PromptCard({ value, onChange, onSubmit, onStop, running, typed, 
                 aria-label="Stop generating"
                 className="grid size-8 place-items-center rounded-xl border border-clay bg-surface text-clay transition-transform active:scale-95"
               >
-                <Square size={12} weight="fill" />
+                <StopCircle size={16} />
               </button>
             ) : (
               <button
@@ -157,7 +157,7 @@ export function PromptCard({ value, onChange, onSubmit, onStop, running, typed, 
                 aria-label={submitLabel}
                 className="control-edge control-clay relative grid size-8 place-items-center rounded-lg border border-clay-ring bg-clay text-white shadow-[inset_0_-3px_6px_-3px_rgb(90_30_10/0.18),0_1px_1px_rgb(150_60_30/0.12),0_2px_4px_rgb(150_60_30/0.16)] transition-[transform,filter] active:scale-95"
               >
-                <ArrowUp size={16} weight="bold" />
+                <PaperPlaneTilt size={16} />
               </button>
             )}
           </div>
@@ -175,7 +175,7 @@ export function PromptCard({ value, onChange, onSubmit, onStop, running, typed, 
 }
 
 function TripOptionsControl({ options, onChange, disabled }: { options: TripOptions; onChange: (o: TripOptions) => void; disabled: boolean }) {
-  const length = options.days === null ? 'Auto length' : `${options.days} day${options.days === 1 ? '' : 's'}`;
+  const length = options.days === null ? 'Trip length' : `${options.days} day${options.days === 1 ? '' : 's'}`;
   return (
     <Popover>
       <PopoverTrigger asChild disabled={disabled}>
@@ -185,7 +185,7 @@ function TripOptionsControl({ options, onChange, disabled }: { options: TripOpti
           className="group flex h-8 items-center gap-1 rounded-xl pr-2 text-ink transition-colors hover:bg-sunken active:scale-[0.97] disabled:opacity-50 aria-expanded:bg-sunken"
         >
           <span className="grid size-8 place-items-center">
-            <Plus size={16} className="transition-transform group-aria-expanded:rotate-45" />
+            <SlidersHorizontal size={16} className="transition-colors group-aria-expanded:text-brand" />
           </span>
           <span className="label text-[11px] text-muted group-hover:text-ink">{length}</span>
           <span className="label hidden text-[11px] text-subtle min-[400px]:inline">· {PACE_LABEL[options.pace]}</span>
@@ -193,7 +193,7 @@ function TripOptionsControl({ options, onChange, disabled }: { options: TripOpti
       </PopoverTrigger>
       <PopoverContent align="start" sideOffset={10} className="w-72 rounded-2xl p-0">
         <div className="border-b border-line p-4">
-          <p className="label text-[11px] text-muted">Length</p>
+          <p className="label text-[11px] text-muted">Days</p>
           <div className="mt-2 flex items-center justify-between rounded-xl border border-line p-1">
             <button
               type="button"

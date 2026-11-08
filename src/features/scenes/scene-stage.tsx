@@ -104,12 +104,24 @@ export function SceneStage({ scene, dim = false, className, children }: { scene:
           alt=""
           decoding="async"
           fetchPriority="high"
-          onLoad={() => {
-            // The <img> now shows the new scene, so the dissolve canvas can be cleared.
+          onLoad={(event) => {
+            // Hand-off from the dissolve canvas to the <img>. `load` can fire before an async-decoded
+            // image is actually painted, and clearing the canvas then flashes the dark backdrop for a
+            // frame. So wait for the decode, then for the next painted frame, and only then clear —
+            // unless another dissolve has started in the meantime.
             if (!clearOnLoad.current) return;
             clearOnLoad.current = false;
-            const canvas = canvasRef.current;
-            canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
+            const run = token.current;
+            const img = event.currentTarget;
+            const clear = () => {
+              if (run !== token.current) return;
+              const canvas = canvasRef.current;
+              canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
+            };
+            img
+              .decode()
+              .catch(() => undefined)
+              .then(() => requestAnimationFrame(() => requestAnimationFrame(clear)));
           }}
           className="absolute inset-0 size-full object-cover"
         />
@@ -132,10 +144,10 @@ export function SceneCaption({ scene, position, onPrev, onNext, className }: { s
         {String(position.index + 1).padStart(2, '0')}/{String(position.total).padStart(2, '0')}
       </span>
       <button type="button" onClick={onPrev} aria-label="Previous scene" className="ml-1 grid size-6 place-items-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10">
-        <CaretLeft size={12} weight="bold" />
+        <CaretLeft size={12} />
       </button>
       <button type="button" onClick={onNext} aria-label="Next scene" className="grid size-6 place-items-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10">
-        <CaretRight size={12} weight="bold" />
+        <CaretRight size={12} />
       </button>
     </div>
   );

@@ -2,7 +2,7 @@
 @import 'tw-animate-css';
 
 /*
- * Roamfar design tokens.
+ * TripTinker design tokens.
  * Neutrals follow autosend's stone scale; one brand accent (juniper) for actions and state,
  * and terracotta reserved for the prompt card — the one thing we want the eye to land on.
  */
@@ -136,8 +136,8 @@
 
   /* Crosshatch lines for recessed cells that windows float on. */
   --pattern: rgb(28 25 23 / 0.075);
-  /* The U-shaped glow over the first screen: one light teal, fading upward. */
-  --glow: #bfe2da;
+  /* Pattern Craft's Pastel Wave, with Ocean Breeze blue/teal and a silver finish. */
+  --glow: linear-gradient(120deg, #b3e5fc 0%, #e0f2f1 50%, #f0f0f0 100%);
   /* the light band that sweeps across brand eyebrows */
   --shimmer-light: #7fd0c4;
   --lift: 0 0 0 1px rgb(0 0 0 / 0.05), 0 1px 3px rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
@@ -184,8 +184,8 @@
   --syn-punct: #78716c;
 
   --pattern: rgb(255 255 255 / 0.055);
-  /* Deep cyan-teal at low opacity: Raycast's dark-hero hue (rgb 2 96 101), kept as a faint haze. */
-  --glow: rgb(2 96 101 / 0.28);
+  /* The scene supplies colour against the existing near-black page in dark mode. */
+  --glow: none;
   --shimmer-light: #ffffff;
   --lift: 0 0 0 1px rgb(255 255 255 / 0.1), 0 1px 3px rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
   --edge: rgb(255 255 255 / 0.1);
@@ -249,12 +249,13 @@
     font-style: italic;
     font-variation-settings: 'SOFT' 100, 'WONK' 1;
   }
-  /* The ROAMFAR wordmark: Fraunces with the soft/wonky axes off reads as a classic bracketed serif. */
+  /* Match the headings' warm serif, with one upright treatment across the whole name. */
   .wordmark {
     font-family: var(--font-display);
-    font-variation-settings: 'SOFT' 0, 'WONK' 0, 'opsz' 72;
-    font-weight: 480;
-    letter-spacing: 0.035em;
+    font-variation-settings: 'SOFT' 100, 'WONK' 0;
+    font-style: normal;
+    font-weight: 500;
+    letter-spacing: -0.025em;
   }
   .label {
     font-family: var(--font-sans);
