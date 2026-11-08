@@ -1,8 +1,8 @@
 import type { AddressInfo } from 'node:net';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { StreamEvent } from '@triptinker/contracts';
 import { createApp, type AppOptions } from '../src/app';
-import { createOpenAiProvider } from '../src/provider';
+import { createOpenAiProvider, type Chunk } from '../src/provider';
 import { modelOutput, sample, scriptedProvider } from './helpers';
 
 const providerConfig = {
@@ -118,6 +118,55 @@ describe('OpenAI-compatible provider', () => {
     for await (const chunk of provider.stream([], new AbortController().signal)) chunks.push(chunk);
     return chunks;
   }
+
+  it('retries a failed upstream connection once before streaming', async () => {
+    const fetchImpl = vi.fn<typeof fetch>()
+      .mockRejectedValueOnce(new TypeError('fetch failed'))
+      .mockResolvedValueOnce(sse(['data: {"choices":[{"delta":{"content":"ok"},"finish_reason":"stop"}]}']));
+    const provider = createOpenAiProvider(providerConfig, fetchImpl);
+    const chunks = [];
+    for await (const chunk of provider.stream([], new AbortController().signal)) chunks.push(chunk);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(chunks).toEqual([{ type: 'text', text: 'ok' }, { type: 'finish', reason: 'stop' }]);
+  });
+
+  it('reports repeated upstream connection failures as provider unavailability', async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockRejectedValue(new TypeError('fetch failed'));
+    const provider = createOpenAiProvider(providerConfig, fetchImpl);
+    await expect(async () => {
+      for await (const chunk of provider.stream([], new AbortController().signal)) void chunk;
+    }).rejects.toMatchObject({ code: 'PROVIDER_UNAVAILABLE', detail: 'fetch failed' });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it('finishes and closes the upstream stream without waiting for a DONE frame', async () => {
+    const cancel = vi.fn();
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"ok"},"finish_reason":"stop"}]}\n\n'));
+      },
+      cancel,
+    });
+    expect(await collect(new Response(body))).toEqual([{ type: 'text', text: 'ok' }, { type: 'finish', reason: 'stop' }]);
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
+  it('does not retry a broken stream after partial output', async () => {
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"partial"}}]}\n\n'));
+      },
+      pull(controller) { controller.error(new Error('upstream disconnected')); },
+    });
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(new Response(body));
+    const provider = createOpenAiProvider(providerConfig, fetchImpl);
+    const chunks: Chunk[] = [];
+    await expect(async () => {
+      for await (const chunk of provider.stream([], new AbortController().signal)) chunks.push(chunk);
+    }).rejects.toMatchObject({ code: 'PROVIDER_UNAVAILABLE' });
+    expect(chunks).toEqual([{ type: 'text', text: 'partial' }]);
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
 
   it('reads content deltas, keepalives and the finish reason', async () => {
     const chunks = await collect(
