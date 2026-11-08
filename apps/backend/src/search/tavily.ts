@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { MAX_SOURCES, type GenerateItineraryInput, type WebSource } from '@triptinker/contracts';
+import { MAX_SOURCES, type WebSource } from '@triptinker/contracts';
+export { searchQuery } from './query';
 
 /** One search hit: the link shown to the traveller, plus a snippet that only the model sees. */
 export type WebResult = WebSource & { content: string };
@@ -79,12 +80,6 @@ export function toWebResults(raw: unknown, max = MAX_SOURCES): WebResult[] {
     if (out.length === max) break;
   }
   return out;
-}
-
-/** What to search for: the traveller's own words, as an itinerary search. */
-export function searchQuery(request: GenerateItineraryInput) {
-  const brief = request.brief.length > 300 ? request.brief.slice(0, 300) : request.brief;
-  return `${brief} travel itinerary`;
 }
 
 export function createTavilySearch({ apiKey, timeoutMs = 6_000, maxResults = MAX_SOURCES, fetchImpl = fetch }: TavilyOptions): Search {
