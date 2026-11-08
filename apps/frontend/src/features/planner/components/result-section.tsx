@@ -322,7 +322,8 @@ export function ResultSection(props: Props) {
               setAnchor(0);
             }}
             className={cn(
-              'group relative flex min-w-60 flex-1 flex-col items-start gap-2 overflow-hidden border-r border-line px-5 py-4 text-left outline-offset-[-2px] transition-colors last:border-r-0',
+              'group relative flex flex-1 flex-col items-start gap-2 overflow-hidden border-r border-line px-5 py-4 text-left outline-offset-[-2px] transition-colors last:border-r-0',
+              marked?.perDay[i] ? 'min-w-60' : 'min-w-44',
               d.id !== day.id && 'hover:bg-sunken/60',
             )}
           >
@@ -372,7 +373,7 @@ export function ResultSection(props: Props) {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
           <div className="flex min-w-0 flex-col lg:max-h-[38rem] lg:border-r lg:border-line">
             {day.summary && (
               <p className="border-b border-line px-6 py-4 text-[15px] leading-[22px] text-muted">
@@ -404,7 +405,7 @@ export function ResultSection(props: Props) {
             <DayGlance day={day} />
           </div>
           {desktop && (
-            <SceneBackdrop src={sceneSrc} className="p-6">
+            <SceneBackdrop src={sceneSrc} className="p-4 lg:p-5">
               {currentStop ? (
                 <motion.div
                   key={currentStop.id}
@@ -415,7 +416,7 @@ export function ResultSection(props: Props) {
                 >
                   <WindowFrame
                     title={`Day ${pad2(dayIndex + 1)} · stop ${pad2(current + 1)} of ${pad2(day.stops.length)}`}
-
+                    className="rounded-xl"
                   >
                     <StopDetail
                       readOnly={locked}
