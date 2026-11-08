@@ -5,6 +5,8 @@ import { LIMITS, PACES, type Pace } from '@triptinker/contracts';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RunningRing } from '@/components/ui/running-ring';
 import { cn } from '@/lib/utils';
+import { appendSpoken } from '../use-voice-input';
+import { MicButton } from './mic-button';
 
 export type TripOptions = { days: number | null; pace: Pace };
 
@@ -61,6 +63,8 @@ type Props = {
   size?: 'hero' | 'compact';
   className?: string;
   inputRef?: RefObject<HTMLTextAreaElement | null>;
+  /** Show the microphone: the server can transcribe speech and the browser can record it. */
+  voice?: boolean;
 };
 
 export function PromptCard({
@@ -81,13 +85,15 @@ export function PromptCard({
   size = 'hero',
   className,
   inputRef,
+  voice,
 }: Props) {
   const reduce = useReducedMotion();
   const [focused, setFocused] = useState(false);
   const [shaking, setShaking] = useState(false);
+  const [listening, setListening] = useState(false);
   const localRef = useRef<HTMLTextAreaElement | null>(null);
   const id = useId();
-  const ghost = useTypewriter(typed, !value && !focused && !reduce && !running);
+  const ghost = useTypewriter(typed, !value && !focused && !reduce && !running && !listening);
 
   useImperativeHandle(inputRef, () => localRef.current as HTMLTextAreaElement, []);
 
@@ -144,7 +150,7 @@ export function PromptCard({
             placeholder={reduce || focused ? typed[0] : ''}
             className="block max-h-48 w-full resize-none bg-transparent text-base leading-[22px] text-ink outline-none [field-sizing:content] placeholder:text-subtle focus-visible:outline-none"
           />
-          {!value && !focused && !reduce && (
+          {!value && !focused && !reduce && !listening && (
             <span className="pointer-events-none absolute inset-0 text-base leading-[22px] text-ink" aria-hidden>
               {ghost}
               <span className="ml-0.5 inline-block h-4 w-px animate-caret bg-ink align-middle" />
@@ -155,9 +161,19 @@ export function PromptCard({
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-1">{options && onOptionsChange && <TripOptionsControl options={options} onChange={onOptionsChange} disabled={running} />}</div>
           <div className="flex items-center gap-2">
-            <span className={cn('tabular hidden text-[12px] text-subtle sm:inline', value.length > maxLength * 0.9 && 'text-warn')}>
+            <span className={cn('tabular hidden text-[12px] text-subtle sm:inline', listening && 'sm:hidden', value.length > maxLength * 0.9 && 'text-warn')}>
               {value.length > maxLength * 0.9 ? `${value.length}/${maxLength}` : 'Enter to send'}
             </span>
+            {voice && !running && (
+              <MicButton
+                onActiveChange={setListening}
+                onText={(spoken) => {
+                  onChange(appendSpoken(value, spoken, maxLength));
+                  if (error) onClearError?.();
+                  localRef.current?.focus();
+                }}
+              />
+            )}
             {running ? (
               <button
                 type="button"

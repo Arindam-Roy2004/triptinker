@@ -217,6 +217,12 @@
   to { stroke-dashoffset: var(--to); }
 }
 
+/* Idle wave for the voice bars when no live level is available (MicButton). */
+@keyframes voice-bar {
+  0%, 100% { transform: scaleY(0.25); }
+  50% { transform: scaleY(0.9); }
+}
+
 @layer base {
   * {
     @apply border-line outline-brand/60;

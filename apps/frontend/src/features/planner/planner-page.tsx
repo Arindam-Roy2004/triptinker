@@ -27,6 +27,7 @@ import { findStop, moveStop, moveStopToDay, removeStop, restoreStop } from './op
 import { tripSchema, useTripStore, type Trip } from './trip-store';
 import { useGeneration } from './use-generation';
 import { useLibrary } from './use-library';
+import { voiceSupported } from './use-voice-input';
 import { STORAGE_KEYS } from '@/lib/keys';
 
 const WORKSPACE_KEY = STORAGE_KEYS.workspace;
@@ -89,6 +90,8 @@ export function PlannerPage() {
   const saved = library.isSaved(trip);
   const notConfigured = !!health && !health.configured && !simulate;
   const { matchDestination } = scene;
+  const [canRecord] = useState(voiceSupported);
+  const voice = !!health?.voice && canRecord;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -363,6 +366,7 @@ export function PlannerPage() {
                 onOptionsChange={(o) => setForm((f) => ({ ...f, ...o }))}
                 error={briefError}
                 onClearError={() => setBriefError(null)}
+                voice={voice}
               />
               <div className="flex flex-wrap justify-center gap-2" aria-label="Example trips">
                 {EXAMPLES.map((example) => (
@@ -459,6 +463,7 @@ export function PlannerPage() {
                   onClearError={() => setRefineError(null)}
                   disabled={notConfigured || generating}
                   inputRef={refineRef}
+                  voice={voice}
                 />
               </ResultSection>
             </div>

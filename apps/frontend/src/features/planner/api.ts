@@ -1,6 +1,7 @@
 import {
   healthSchema,
   streamEventSchema,
+  transcriptionSchema,
   type ErrorCode,
   type GenerateItineraryInput,
   type Health,
@@ -142,6 +143,24 @@ export async function streamPlan(request: PlanRequest, handlers: StreamHandlers)
     clearTimeout(watchdog);
     signal.removeEventListener('abort', abort);
   }
+}
+
+/** Sends a WAV clip to the server's speech model. Resolves to the transcript, or throws a message to show. */
+export async function transcribe(audio: Blob, signal?: AbortSignal): Promise<string> {
+  let response: Response;
+  try {
+    response = await fetch('/api/transcribe', { method: 'POST', headers: { 'Content-Type': 'audio/wav' }, body: audio, signal });
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    throw new Error('Could not reach the server. Check your connection and try again.', { cause: error });
+  }
+  if (!response.ok) {
+    const outcome = await errorFromResponse(response);
+    throw new Error(outcome.kind === 'error' ? outcome.message : 'Voice input failed.');
+  }
+  const parsed = transcriptionSchema.safeParse(await response.json().catch(() => null));
+  if (!parsed.success) throw new Error('The server sent an unexpected response.');
+  return parsed.data.text;
 }
 
 export async function fetchHealth(signal?: AbortSignal): Promise<Health | null> {

@@ -10,6 +10,8 @@ import { cn } from '@/lib/utils';
 import type { ItineraryDiff } from '../diff';
 import type { GenerationState } from '../use-generation';
 import { describeProblem, type Problem } from '../problem-copy';
+import { appendSpoken } from '../use-voice-input';
+import { MicButton } from './mic-button';
 
 const SUGGESTIONS = ['Slow down day one', 'Add vegetarian dinners', 'More outdoor stops', 'Start after 9am'];
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -44,6 +46,8 @@ type Props = {
   onClearError: () => void;
   disabled?: boolean;
   inputRef?: RefObject<HTMLTextAreaElement | null>;
+  /** Show the microphone next to Send. */
+  voice?: boolean;
 };
 
 /**
@@ -81,7 +85,7 @@ export function RefineBar(props: Props) {
   );
 }
 
-function Compose({ value, onChange, onSubmit, error, onClearError, disabled, inputRef }: Props) {
+function Compose({ value, onChange, onSubmit, error, onClearError, disabled, inputRef, voice }: Props) {
   const id = useId();
   const [focused, setFocused] = useState(false);
   const tooShort = value.trim().length < LIMITS.instructionMin;
@@ -123,6 +127,17 @@ function Compose({ value, onChange, onSubmit, error, onClearError, disabled, inp
           placeholder="Ask for a change to this plan…"
           className="block max-h-32 min-h-9 flex-1 resize-none bg-transparent py-[7px] text-[15px] leading-[22px] text-ink outline-none [field-sizing:content] placeholder:text-subtle focus-visible:outline-none"
         />
+        {voice && (
+          <MicButton
+            size={9}
+            disabled={disabled}
+            onText={(spoken) => {
+              onChange(appendSpoken(value, spoken, LIMITS.instructionMax));
+              if (error) onClearError();
+              inputRef?.current?.focus();
+            }}
+          />
+        )}
         <button
           type="submit"
           aria-label="Send change request"
