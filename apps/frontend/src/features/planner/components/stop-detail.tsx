@@ -39,10 +39,15 @@ export function StopDetail({ stop, index, count, dayId, days, destination, onMov
       <div className={cn('flex min-h-0 flex-col gap-4', !compact && 'pane-scroll overflow-y-auto p-5')}>
         {!compact && (
           <header className="flex flex-col gap-2.5">
-            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2 text-[12px] leading-5">
-              <span className="tabular inline-flex items-center gap-1.5 rounded-md bg-sunken px-2 py-0.5 font-medium text-ink"><Clock size={12} aria-hidden />{formatTime(stop.time) ?? 'Any time'}</span>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-2 text-[12px] leading-5">
+              <span className="tabular mr-0.5 inline-flex items-center gap-1.5 rounded-md bg-sunken px-2 py-0.5 font-medium text-ink"><Clock size={12} aria-hidden />{formatTime(stop.time) ?? 'Any time'}</span>
               <span className="inline-flex items-center gap-1.5" style={{ color: meta.color }}><meta.icon size={13} aria-hidden />{meta.label}</span>
-              {duration && <span className="tabular text-subtle">· {duration}</span>}
+              {duration && (
+                <>
+                  <span aria-hidden className="text-subtle">·</span>
+                  <span className="tabular text-subtle">{duration}</span>
+                </>
+              )}
             </div>
             <h3 className="text-[22px] leading-[1.25] font-medium tracking-[-0.02em] text-pretty text-ink-strong">{stop.title}</h3>
             {stop.area && <p className="flex items-center gap-1.5 text-[13px] leading-5 text-subtle"><MapPin size={13} className="shrink-0" aria-hidden />{stop.area}</p>}
@@ -54,13 +59,13 @@ export function StopDetail({ stop, index, count, dayId, days, destination, onMov
           </p>
         )}
         {stop.tip && (
-          <aside aria-label="Travel tip" className="w-fit max-w-full self-start rounded-lg border border-line bg-sunken/55 px-3.5 py-3">
-            <p className="flex items-center gap-1.5 text-[11px] font-medium text-brand"><Lightbulb size={13} aria-hidden />Good to know</p>
-            <p className="mt-1.5 text-[13px] leading-[21px] break-words text-muted">{stop.tip}</p>
+          <aside aria-label="Travel tip" className="flex w-full flex-col items-center rounded-lg border border-line bg-sunken/55 px-5 py-3.5 text-center">
+            <p className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-brand"><Lightbulb size={13} aria-hidden />Good to know</p>
+            <p className="mt-1.5 max-w-[46ch] text-[13px] leading-[21px] text-balance break-words text-muted">{stop.tip}</p>
           </aside>
         )}
       </div>
-      <footer className={cn('flex shrink-0 items-center gap-2', compact ? 'pt-3' : 'border-t border-line bg-sunken/30 px-5 py-3')}>
+      <footer className={cn('flex shrink-0 items-center justify-between gap-2', compact ? 'pt-3' : 'border-t border-line bg-sunken/30 px-5 py-3')}>
         <Button asChild size={compact ? 'icon-sm' : 'sm'} variant="secondary">
           <a href={mapsSearchUrl(stop.title, destination, stop.area)} target="_blank" rel="noreferrer" aria-label={compact ? `Open ${stop.title} in Maps` : undefined}>
             <MapPin /> {!compact && 'Maps'}

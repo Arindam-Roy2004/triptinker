@@ -163,7 +163,7 @@ function Row({
           onClick={onSelect}
           aria-expanded={inline ? expanded : undefined}
           aria-current={!inline && selected ? 'true' : undefined}
-          className="relative grid min-w-0 flex-1 grid-cols-[4.5rem_minmax(0,1fr)_auto] items-start gap-x-2.5 py-3.5 pl-5 text-left focus-visible:outline-none"
+          className="relative grid min-w-0 flex-1 grid-cols-[4.5rem_minmax(0,1fr)_auto] items-start gap-x-2.5 py-3.5 pl-6 text-left focus-visible:outline-none"
         >
           <span className="label tabular pt-0.5 text-[12px] whitespace-nowrap text-muted">{formatTime(stop.time) ?? 'Any'}</span>
           <span className="min-w-0">
@@ -174,8 +174,18 @@ function Row({
             <span className="mt-1 flex flex-wrap items-center gap-x-1.5 text-[13px] text-muted">
               <Icon className="size-3.5" style={{ color: meta.color }} aria-hidden />
               {meta.label}
-              {stop.area && <span className="text-subtle">· {stop.area}</span>}
-              {duration && <span className="tabular text-subtle">· {duration}</span>}
+              {stop.area && (
+                <>
+                  <span aria-hidden className="text-subtle">·</span>
+                  <span className="text-subtle">{stop.area}</span>
+                </>
+              )}
+              {duration && (
+                <>
+                  <span aria-hidden className="text-subtle">·</span>
+                  <span className="tabular text-subtle">{duration}</span>
+                </>
+              )}
             </span>
           </span>
           {inline && <CaretDown size={14} className={cn('mt-1 text-subtle transition-transform', expanded && 'rotate-180')} />}
@@ -196,7 +206,7 @@ function Row({
       <AnimatePresence initial={false}>
         {expanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25, ease }} className="overflow-hidden">
-            <div className="relative pr-5 pb-4 pl-5 sm:pl-[6.1rem]">{detail}</div>
+            <div className="relative pr-6 pb-4 pl-6 sm:pl-[6.625rem]">{detail}</div>
           </motion.div>
         )}
       </AnimatePresence>
