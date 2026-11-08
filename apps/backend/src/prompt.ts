@@ -38,6 +38,8 @@ Respond with ONE JSON object and nothing else — no markdown, no code fences, n
 ${SHAPE}
 
 Rules:
+- Keep the JSON compact, without indentation. Use one short sentence (at most 20 words) per description or summary, and at most 12 words per tip. Use null when a tip adds nothing useful.
+- Preserve the requested trip length, destinations, events and transport constraints. Conversational wording or a long brief is not a reason to reject a trip.
 - Between 3 and ${LIMITS.maxStopsPerDay - 2} stops per day, in chronological order, with realistic travel time between them.
 - Group each day geographically. Include meals as "food" stops.
 - Prefer specific, real, well-known places. Never invent prices, opening hours or booking links.
