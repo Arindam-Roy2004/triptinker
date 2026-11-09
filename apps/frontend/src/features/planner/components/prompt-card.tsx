@@ -175,7 +175,10 @@ export function PromptCard({
               />
             )}
             {running ? (
+              // Keyed apart from the send button: sharing one element would turn the click on Stop into a
+              // click on a submit button by the time the browser acts on it, and restart the run.
               <button
+                key="stop"
                 type="button"
                 onClick={onStop}
                 aria-label="Stop generating"
@@ -184,7 +187,7 @@ export function PromptCard({
                 <Stop size={13} weight="fill" />
               </button>
             ) : (
-              <button type="submit" aria-label={submitLabel} className="t-surface t-surface-clay relative grid size-8 place-items-center rounded-lg text-white transition-[scale] active:scale-[0.97]">
+              <button key="send" type="submit" aria-label={submitLabel} className="t-surface t-surface-clay relative grid size-8 place-items-center rounded-lg text-white transition-[scale] active:scale-[0.97]">
                 <ArrowUp size={16} weight="bold" />
               </button>
             )}

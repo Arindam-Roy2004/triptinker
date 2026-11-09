@@ -191,9 +191,19 @@ test('a stale response never replaces what the user switched to', async ({ page 
 
 test('stop cancels the run cleanly', async ({ page }) => {
   await useLab(page, /Slow model/);
+  let requests = 0;
+  page.on('request', (request) => {
+    if (request.url().endsWith('/api/itinerary')) requests += 1;
+  });
   await plan(page);
+  await expect(page.getByText('Live plan', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Stop generating' }).click();
   await expect(page.getByRole('button', { name: 'Hide thinking steps' })).toHaveCount(0);
+  // Stop must not double as a submit: the send button is back and no second run was started.
+  await expect(page.getByRole('button', { name: 'Plan this trip' })).toBeVisible();
+  await page.waitForTimeout(1000);
+  expect(requests).toBe(1);
+  await expect(page.getByRole('button', { name: 'Stop generating' })).toHaveCount(0);
   await expect(page.getByText('Day by day', { exact: true })).toBeVisible();
   // Nothing lands later, and the brief is still there to edit and resend.
   await expect(page.getByLabel('Describe your trip')).toHaveValue(BRIEF);
