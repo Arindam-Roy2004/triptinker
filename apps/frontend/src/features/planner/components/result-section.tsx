@@ -122,7 +122,7 @@ function DayGlance({ day }: { day: Day }) {
   for (const stop of day.stops) counts.set(stop.category, (counts.get(stop.category) ?? 0) + 1);
   if (!day.stops.length) return null;
   return (
-    <div className="mt-auto flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line px-6 py-4 text-[13px] text-muted">
+    <div className="mt-auto flex flex-wrap items-center justify-between gap-x-5 gap-y-2 border-t border-line px-6 py-4 text-[13px] text-muted">
       {first && (
         <span className="tabular">
           <span className="label mr-1.5 text-[11px] text-subtle">Time</span>
@@ -136,7 +136,7 @@ function DayGlance({ day }: { day: Day }) {
           {formatDuration(minutes)}
         </span>
       )}
-      <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <span className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-1">
         {[...counts].map(([category, n]) => {
           const meta = CATEGORY_META[category];
           return (
@@ -284,7 +284,7 @@ export function ResultSection(props: Props) {
             </Reveal>
           )}
         </div>
-        <Reveal as="div" index={3} className="flex flex-wrap items-center gap-2">
+        <Reveal as="div" index={3} className="flex w-full items-center gap-2 lg:w-auto">
           <IconButton label="Undo" shortcut="⌘Z" onClick={props.onUndo} disabled={locked || !props.canUndo}>
             <ArrowCounterClockwise />
           </IconButton>
@@ -292,7 +292,7 @@ export function ResultSection(props: Props) {
             <ArrowClockwise />
           </IconButton>
           <DownloadMenu onExport={props.onExport} />
-          <PixelButton variant={props.saved ? 'secondary' : 'primary'} onClick={props.onSave} disabled={locked || props.saved}>
+          <PixelButton variant={props.saved ? 'secondary' : 'primary'} onClick={props.onSave} disabled={locked || props.saved} className="flex-1 lg:flex-none">
             {props.saved ? <Check /> : <BookmarkSimple />} {props.saved ? 'Saved' : 'Save trip'}
           </PixelButton>
         </Reveal>
@@ -342,9 +342,12 @@ export function ResultSection(props: Props) {
             {/* Only the selected stop gets the pixel field; the day keeps just the drawing line. */}
             {d.id === day.id && <PixelFill key={d.id} pixels={false} />}
             <span className="relative flex w-full items-center justify-between gap-3">
-              <span className={cn('label tabular shrink-0 text-[11px] whitespace-nowrap', d.id === day.id ? 'text-brand' : 'text-subtle')}>
-                Day {pad2(i + 1)} · {d.stops.length} {d.stops.length === 1 ? 'stop' : 'stops'}
-              </span>
+              <span className={cn('label tabular shrink-0 text-[11px] whitespace-nowrap', d.id === day.id ? 'text-brand' : 'text-subtle')}>Day {pad2(i + 1)}</span>
+              {!marked?.perDay[i] && (
+                <span className="label tabular shrink-0 text-[11px] whitespace-nowrap text-subtle">
+                  {d.stops.length} {d.stops.length === 1 ? 'stop' : 'stops'}
+                </span>
+              )}
               {!!marked?.perDay[i] &&
                 (review ? (
                   <span className="inline-flex shrink-0 items-center rounded-full border border-warn/15 bg-warn-wash px-2 py-0.5 text-[11px] leading-4 font-medium whitespace-nowrap text-warn">
@@ -354,7 +357,7 @@ export function ResultSection(props: Props) {
                   <span className="inline-flex shrink-0 items-center rounded-full border border-ok/15 bg-ok-wash px-2 py-0.5 text-[11px] leading-4 font-medium whitespace-nowrap text-ok">Updated</span>
                 ))}
             </span>
-            <span className={cn('relative max-w-full truncate text-[15px] font-medium transition-colors', d.id === day.id ? 'text-ink' : 'text-muted group-hover:text-brand')}>{d.title}</span>
+            <span className={cn('relative line-clamp-2 max-w-full text-[15px] font-medium text-pretty transition-colors', d.id === day.id ? 'text-ink' : 'text-muted group-hover:text-brand')}>{d.title}</span>
           </button>
         ))}
       </div>
@@ -385,7 +388,7 @@ export function ResultSection(props: Props) {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+        <div className="grid grid-cols-1 lg:grid-cols-2">
           <div className="flex min-w-0 flex-col lg:max-h-[38rem] lg:border-r lg:border-line">
             {day.summary && (
               <p className="border-b border-line px-6 py-4 text-[15px] leading-[22px] text-muted">
@@ -468,7 +471,7 @@ export function ResultSection(props: Props) {
 
       {/* Only what changes how the plan reads: stops the checks had to drop, and the pages it was grounded in. */}
       {(trip.warnings.length > 0 || trip.sources.length > 0) && (
-        <div aria-label="About this plan" className="flex flex-col gap-1.5 border-t border-line px-6 py-4 text-[13px] leading-5">
+        <div aria-label="About this plan" className="flex flex-col items-center gap-1.5 border-t border-line px-6 py-4 text-center text-[13px] leading-5">
           {trip.warnings.map((note) => (
             <p key={note} className="flex items-start gap-2 text-muted">
               <Info size={14} className="mt-[3px] shrink-0 text-subtle" />
@@ -476,7 +479,7 @@ export function ResultSection(props: Props) {
             </p>
           ))}
           {trip.sources.length > 0 && (
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-subtle">
+            <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-subtle">
               <GlobeSimple size={14} className="shrink-0" aria-hidden />
               <span>Grounded in</span>
               <SourceStack sources={trip.sources} label={`${trip.sources.length} ${trip.sources.length === 1 ? 'source' : 'sources'}`} />

@@ -163,27 +163,25 @@ function Row({
           onClick={onSelect}
           aria-expanded={inline ? expanded : undefined}
           aria-current={!inline && selected ? 'true' : undefined}
-          className="relative grid min-w-0 flex-1 grid-cols-[4.5rem_minmax(0,1fr)_auto] items-start gap-x-2.5 py-3.5 pl-6 text-left focus-visible:outline-none"
+          className="relative grid min-w-0 flex-1 grid-cols-[4.5rem_minmax(0,1fr)_auto] items-start gap-x-2.5 py-3.5 pr-6 pl-6 text-left sm:pr-2 focus-visible:outline-none"
         >
-          <span className="label tabular pt-0.5 text-[12px] whitespace-nowrap text-muted">{formatTime(stop.time) ?? 'Any'}</span>
+          {/* The time column also carries how long the stop takes, so the meta line stays short. */}
+          <span className="flex flex-col gap-1 pt-0.5">
+            <span className="label tabular text-[12px] whitespace-nowrap text-muted">{formatTime(stop.time) ?? 'Any'}</span>
+            {duration && <span className="tabular text-[12px] leading-4 whitespace-nowrap text-subtle">{duration}</span>}
+          </span>
           <span className="min-w-0">
             <span className="block text-[15px] leading-[21px] font-medium text-pretty text-ink">
               {stop.title}
               {mark && <MarkTag mark={mark} />}
             </span>
-            <span className="mt-1 flex flex-wrap items-center gap-x-1.5 text-[13px] text-muted">
+            <span className="mt-1 flex min-w-0 items-center gap-x-1.5 text-[13px] whitespace-nowrap text-muted">
               <Icon className="size-3.5" style={{ color: meta.color }} aria-hidden />
               {meta.label}
               {stop.area && (
                 <>
                   <span aria-hidden className="text-subtle">·</span>
-                  <span className="text-subtle">{stop.area}</span>
-                </>
-              )}
-              {duration && (
-                <>
-                  <span aria-hidden className="text-subtle">·</span>
-                  <span className="tabular text-subtle">{duration}</span>
+                  <span className="min-w-0 truncate text-subtle">{stop.area}</span>
                 </>
               )}
             </span>

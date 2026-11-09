@@ -59,9 +59,9 @@ export function StopDetail({ stop, index, count, dayId, days, destination, onMov
           </p>
         )}
         {stop.tip && (
-          <aside aria-label="Travel tip" className="flex w-full flex-col items-center rounded-lg border border-line bg-sunken/55 px-5 py-3.5 text-center">
+          <aside aria-label="Travel tip" className="mx-auto flex w-fit max-w-full flex-col items-center rounded-lg border border-line bg-sunken/55 px-5 py-3 text-center">
             <p className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-brand"><Lightbulb size={13} aria-hidden />Good to know</p>
-            <p className="mt-1.5 max-w-[46ch] text-[13px] leading-[21px] text-balance break-words text-muted">{stop.tip}</p>
+            <p className="mt-1.5 max-w-[46ch] text-[13px] leading-[21px] text-pretty break-words text-muted">{stop.tip}</p>
           </aside>
         )}
       </div>

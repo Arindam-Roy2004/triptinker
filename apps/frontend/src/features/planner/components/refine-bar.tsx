@@ -251,7 +251,7 @@ function Failure({ problem, onRetry, onEdit }: { problem: Problem; onRetry: () =
         </div>
       </div>
       <div className="flex shrink-0 gap-2">
-        <Button size="sm" variant="ghost" onClick={onEdit} className="flex-1 sm:flex-none">
+        <Button size="sm" variant="secondary" onClick={onEdit} className="flex-1 sm:flex-none">
           Edit request
         </Button>
         {retryable && (
