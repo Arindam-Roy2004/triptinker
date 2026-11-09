@@ -2,10 +2,37 @@ import { CaretLeft, CaretRight } from '@phosphor-icons/react';
 import { useReducedMotion } from 'motion/react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
-import { sceneSrc, sceneSrcSet, type Scene } from './scenes';
+import { FROM_PROMPT, sceneSrc, sceneSrcSet, type Scene, type SceneTransition } from './scenes';
 
-const CELL = 14; // CSS px per dissolve block — roughly the art's own pixel size at desktop widths
-const DURATION = 900;
+const CELL = 8; // CSS px per dissolve block: fine enough to read as a shimmer of pixels, not as tiles
+const DURATION = 1000;
+const VEIL_IN = 700;
+const VEIL_OUT = 450;
+
+
+/**
+ * Cell indices in the order they change. A ripple goes nearest-to-the-point first; a wipe goes
+ * column by column from one side. Both get enough jitter that the front reads as scattered
+ * pixels rather than a clean edge.
+ */
+function cellOrder(cols: number, rows: number, transition: SceneTransition) {
+  let progress: (col: number, row: number) => number;
+  let jitter: number;
+  if (transition.kind === 'wipe') {
+    const fromRight = transition.from === 'right';
+    progress = (col) => (fromRight ? cols - col - 0.5 : col + 0.5) / cols;
+    jitter = 0.16;
+  } else {
+    const ox = transition.x * cols;
+    const oy = transition.y * rows;
+    const reach = Math.hypot(Math.max(ox, cols - ox), Math.max(oy, rows - oy)) || 1;
+    progress = (col, row) => Math.hypot(col + 0.5 - ox, row + 0.5 - oy) / reach;
+    jitter = 0.28;
+  }
+  const keyed = Array.from({ length: cols * rows }, (_, i) => [i, progress(i % cols, Math.floor(i / cols)) + Math.random() * jitter] as const);
+  keyed.sort((a, b) => a[1] - b[1]);
+  return keyed.map(([i]) => i);
+}
 
 function loadImage(src: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -18,17 +45,69 @@ function loadImage(src: string) {
 }
 
 /**
- * A full-bleed pixel-art scene. Changing `scene` plays a pixel dissolve: the next image is
- * revealed block by block in random order on a canvas, then handed to the <img>. The whole
- * stack drifts slowly (Ken Burns); both stop under reduced motion.
+ * A full-bleed pixel-art scene. The pixels only move for a reason:
+ *
+ *  - Changing `scene` plays a dissolve shaped by `transition` (a ripple from the prompt, or a
+ *    wipe in the direction being browsed): the next image is revealed block by block on a
+ *    canvas, then handed to the <img>.
+ *  - `dim` (a plan is being written) draws a dark veil over the scene the same way, spreading
+ *    from the prompt card, and lifts it again when the work ends.
+ *
+ * The whole stack drifts slowly (Ken Burns). Under reduced motion everything is instant.
  */
-export function SceneStage({ scene, dim = false, className, children }: { scene: Scene; dim?: boolean; className?: string; children?: ReactNode }) {
+export function SceneStage({ scene, dim = false, transition = FROM_PROMPT, className, children }: { scene: Scene; dim?: boolean; transition?: SceneTransition; className?: string; children?: ReactNode }) {
   const reduce = useReducedMotion();
   const [shown, setShown] = useState(scene);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
+  const veilRef = useRef<HTMLCanvasElement>(null);
   const clearOnLoad = useRef(false);
   const token = useRef(0);
+  const transitionRef = useRef(transition);
+  transitionRef.current = transition;
+
+  // The working veil: one canvas pixel per block, scaled up crisp by CSS.
+  useEffect(() => {
+    const canvas = veilRef.current;
+    const frame = frameRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !frame || !ctx) return;
+    if (dim) {
+      canvas.width = Math.max(1, Math.ceil(frame.clientWidth / CELL));
+      canvas.height = Math.max(1, Math.ceil(frame.clientHeight / CELL));
+    }
+    const cols = canvas.width;
+    const rows = canvas.height;
+    ctx.fillStyle = 'rgb(12 10 9 / 0.45)';
+    if (reduce) {
+      ctx.clearRect(0, 0, cols, rows);
+      if (dim) ctx.fillRect(0, 0, cols, rows);
+      return;
+    }
+    const order = cellOrder(cols, rows, FROM_PROMPT);
+    const duration = dim ? VEIL_IN : VEIL_OUT;
+    let done = 0;
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const target = Math.floor((1 - (1 - t) ** 2) * order.length);
+      for (; done < target; done++) {
+        const x = order[done] % cols;
+        const y = Math.floor(order[done] / cols);
+        ctx.clearRect(x, y, 1, 1);
+        if (dim) ctx.fillRect(x, y, 1, 1);
+      }
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      // Interrupted mid-way (a quick stop, or a restart): settle to the state this run was heading for.
+      cancelAnimationFrame(raf);
+      ctx.clearRect(0, 0, cols, rows);
+      if (dim) ctx.fillRect(0, 0, cols, rows);
+    };
+  }, [dim, reduce]);
 
   useEffect(() => {
     if (scene.id === shown.id) return;
@@ -62,12 +141,9 @@ export function SceneStage({ scene, dim = false, className, children }: { scene:
         const ox = (W - img.naturalWidth * s) / 2;
         const oy = (H - img.naturalHeight * s) / 2;
         const c = Math.ceil(CELL * dpr);
-        const cells: [number, number][] = [];
-        for (let y = 0; y < H; y += c) for (let x = 0; x < W; x += c) cells.push([x, y]);
-        for (let i = cells.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [cells[i], cells[j]] = [cells[j], cells[i]];
-        }
+        const cols = Math.ceil(W / c);
+        const rows = Math.ceil(H / c);
+        const cells = cellOrder(cols, rows, transitionRef.current).map((i): [number, number] => [(i % cols) * c, Math.floor(i / cols) * c]);
 
         let drawn = 0;
         const start = performance.now();
@@ -127,7 +203,7 @@ export function SceneStage({ scene, dim = false, className, children }: { scene:
         />
         <canvas ref={canvasRef} className="absolute inset-0 size-full" />
       </div>
-      <div className={cn('pointer-events-none absolute inset-0 bg-[#0c0a09] transition-opacity duration-700', dim ? 'opacity-45' : 'opacity-0')} aria-hidden />
+      <canvas ref={veilRef} width={1} height={1} className="pointer-events-none absolute inset-0 size-full [image-rendering:pixelated]" aria-hidden />
       {children}
     </div>
   );

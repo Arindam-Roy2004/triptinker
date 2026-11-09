@@ -140,6 +140,8 @@ export function PlannerPage() {
       }
       setBriefError(null);
       setForm(request);
+      // A place named in the brief takes over the scene the moment it is sent, not when the plan lands.
+      matchDestination(request.brief);
       lastRun.current = { kind: 'generate', request };
       void generation.start(
         'generate',
@@ -154,7 +156,7 @@ export function PlannerPage() {
         simulate,
       );
     },
-    [form, generation, store, simulate],
+    [form, generation, store, simulate, matchDestination],
   );
 
   const refine = useCallback(
@@ -335,11 +337,11 @@ export function PlannerPage() {
         {/* Hero */}
         <section aria-labelledby="hero-title" className="flex flex-col items-center gap-6 pt-8 pb-10 text-center sm:pt-10 md:pb-12">
           <div className="flex flex-col gap-4">
-            <h1 id="hero-title" className="font-display text-[42px] leading-[1.06] text-ink-strong sm:text-[56px] lg:text-[68px] lg:leading-[1.06]">
-              Where to <em>next</em>? <br className="hidden sm:inline" />
+            <h1 id="hero-title" className="font-display text-[clamp(1.5rem,calc((100vw-2rem)*0.1),2.625rem)] leading-[1.06] text-ink-strong sm:text-[56px] lg:text-[68px] lg:leading-[1.06]">
+              Where to <em>next</em>? <br />
               Say it in <em>one</em> sentence.
             </h1>
-            <p className="mx-auto max-w-2xl text-[16px] leading-7 text-muted md:text-[18px] md:leading-7">
+            <p className="mx-auto max-w-2xl text-[16px] leading-7 text-balance text-muted md:text-[18px] md:leading-7">
               Get a day-by-day plan built around your interests. <br className="hidden md:inline" />
               Move stops, save your trip, or ask AI to make changes.
             </p>
@@ -363,7 +365,7 @@ export function PlannerPage() {
         {/* Scene, prompt and status strip */}
         <div id="scene" className="scroll-mt-20 overflow-hidden rounded-md shadow-lift">
           {/* The card sits in the lower part of the scene, leaving the landmark visible above it. */}
-          <SceneStage scene={scene.scene} dim={generating} className="flex min-h-[520px] flex-col items-center justify-end px-4 pt-36 pb-16 md:min-h-[540px] md:pb-20">
+          <SceneStage scene={scene.scene} transition={scene.transition} dim={generating} className="flex min-h-[520px] flex-col items-center justify-end px-4 pt-36 pb-16 md:min-h-[540px] md:pb-20">
             <div className="relative z-10 flex w-full max-w-2xl flex-col items-center gap-2">
               <PromptCard
                 inputRef={promptRef}
@@ -408,7 +410,7 @@ export function PlannerPage() {
               position={scene.position}
               onPrev={scene.prev}
               onNext={scene.next}
-              className="absolute right-3 bottom-3 z-10 max-w-[calc(100%-1.5rem)] sm:right-4 sm:bottom-4"
+              className="absolute right-4 bottom-4 z-10 max-w-[calc(100%-2rem)]"
             />
           </SceneStage>
           <AnimatePresence mode="wait" initial={false}>

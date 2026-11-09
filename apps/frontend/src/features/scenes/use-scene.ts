@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { STORAGE_KEYS } from '@/lib/keys';
-import { SCENES, sceneForDestination, type Scene } from './scenes';
+import { FROM_PROMPT, SCENES, sceneForDestination, type Scene, type SceneTransition } from './scenes';
 
 const KEY = STORAGE_KEYS.sceneVisit;
 
@@ -22,6 +22,8 @@ export function useScene() {
   /** A destination match overrides the rotation until the traveller browses again. */
   const [pinned, setPinned] = useState<Scene | null>(null);
   const lastDestination = useRef<string | null>(null);
+  /** How the next change plays: a wipe in the direction browsed, or a ripple from the prompt. */
+  const [transition, setTransition] = useState<SceneTransition>(FROM_PROMPT);
 
   const total = SCENES.length;
   const index = (((visit + offset) % total) + total) % total;
@@ -29,6 +31,7 @@ export function useScene() {
 
   const step = useCallback(
     (delta: number) => {
+      setTransition({ kind: 'wipe', from: delta > 0 ? 'right' : 'left' });
       // Browsing from a pinned scene continues from that scene, not from where the rotation was.
       if (pinned) {
         const at = SCENES.findIndex((s) => s.id === pinned.id);
@@ -45,9 +48,11 @@ export function useScene() {
     if (!destination || destination === lastDestination.current) return;
     lastDestination.current = destination;
     const match = sceneForDestination(destination);
-    if (match) setPinned(match);
+    if (!match) return;
+    setTransition(FROM_PROMPT);
+    setPinned(match);
   }, []);
 
   const position = { index: SCENES.findIndex((s) => s.id === scene.id), total };
-  return { scene, position, next: () => step(1), prev: () => step(-1), matchDestination };
+  return { scene, position, transition, next: () => step(1), prev: () => step(-1), matchDestination };
 }

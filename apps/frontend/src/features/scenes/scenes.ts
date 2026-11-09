@@ -29,14 +29,33 @@ export const SCENES: Scene[] = [
 export const sceneSrc = (scene: Scene, width: 960 | 1920) => `/scenes/scene-${scene.id}-${width}.webp`;
 export const sceneSrcSet = (scene: Scene) => `${sceneSrc(scene, 960)} 960w, ${sceneSrc(scene, 1920)} 1920w`;
 
-/** The scene that matches a destination name, if any (longest keyword wins). */
+/** Whole words only: a brief about a "romantic" weekend is not a trip to Roma. */
+function hasWord(text: string, word: string) {
+  for (let at = text.indexOf(word); at !== -1; at = text.indexOf(word, at + 1)) {
+    const before = text[at - 1];
+    const after = text[at + word.length];
+    if (!(before && /\p{L}/u.test(before)) && !(after && /\p{L}/u.test(after))) return true;
+  }
+  return false;
+}
+
+/** The scene that matches a destination name or a brief, if any (longest keyword wins). */
 export function sceneForDestination(destination: string): Scene | null {
   const text = destination.toLowerCase();
   let best: { scene: Scene; length: number } | null = null;
   for (const scene of SCENES) {
     for (const word of scene.match) {
-      if (text.includes(word) && (!best || word.length > best.length)) best = { scene, length: word.length };
+      if (hasWord(text, word) && (!best || word.length > best.length)) best = { scene, length: word.length };
     }
   }
   return best?.scene ?? null;
 }
+
+/**
+ * How one scene gives way to the next, so the pixels move the way the change was asked for:
+ *  - `ripple`: spreads out from a point (as a fraction of the stage), used when the prompt picks the scene.
+ *  - `wipe`: sweeps across from one side, used when browsing. Next comes in from the right, previous from the left.
+ */
+export type SceneTransition = { kind: 'ripple'; x: number; y: number } | { kind: 'wipe'; from: 'left' | 'right' };
+/** A ripple from where the prompt card sits in the stage. */
+export const FROM_PROMPT: SceneTransition = { kind: 'ripple', x: 0.5, y: 0.74 };
