@@ -34,13 +34,14 @@ export function SiteHeader({ children }: { children: ReactNode }) {
     <header className="sticky top-0 z-40 px-3 pt-3">
       <motion.div
         initial={false}
-        animate={{ maxWidth: scrolled ? 840 : 1024, borderRadius: scrolled ? 999 : 16 }}
+        animate={{ maxWidth: scrolled ? 840 : 1128, borderRadius: scrolled ? 999 : 16 }}
         transition={reduce ? { duration: 0 } : HEADER_SPRING}
         className={cn(
-          'mx-auto flex h-16 items-center justify-between gap-4 border px-3 transition-[background-color,border-color,box-shadow] duration-300 sm:px-4',
+          // At rest the bar is as wide as the page content, so the logo and tools sit on its edges.
+          'mx-auto flex h-16 items-center justify-between gap-4 border transition-[background-color,border-color,box-shadow,padding] duration-300',
           scrolled
-            ? 'border-line bg-surface/82 shadow-[0_10px_30px_-14px_rgb(28_25_23/0.28)] backdrop-blur-md'
-            : 'border-transparent bg-transparent',
+            ? 'border-line bg-surface/82 px-3 shadow-[0_10px_30px_-14px_rgb(28_25_23/0.28)] backdrop-blur-md sm:px-4'
+            : 'border-transparent bg-transparent px-[3px] sm:px-[11px]',
         )}
       >
         <a href="/" aria-label="TripTinker, home" className="inline-flex h-12 shrink-0 items-center rounded-md">

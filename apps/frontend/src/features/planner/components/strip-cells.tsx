@@ -14,11 +14,11 @@ export function FeatureCells() {
   return (
     <ul className="grid grid-cols-1 border-t border-line sm:grid-cols-3">
       {FEATURES.map(({ icon: Icon, title, body }) => (
-        <li key={title} className="flex flex-col gap-2 border-b border-line bg-surface px-6 py-6 last:border-b-0 sm:border-r sm:border-b-0 sm:last:border-r-0">
+        <li key={title} className="flex flex-col items-center gap-2 border-b border-line bg-surface px-6 py-6 text-center last:border-b-0 sm:border-r sm:border-b-0 sm:last:border-r-0">
           <p className="flex items-center gap-2 font-sans text-[15px] font-medium text-ink">
             <Icon size={16} className="text-brand" /> {title}
           </p>
-          <p className="text-[15px] leading-[22px] text-muted">{body}</p>
+          <p className="text-[15px] leading-[22px] text-balance text-muted">{body}</p>
         </li>
       ))}
     </ul>
