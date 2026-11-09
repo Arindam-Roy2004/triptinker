@@ -1,7 +1,7 @@
 import { motion, useReducedMotion } from 'motion/react';
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown } from '@phosphor-icons/react';
-import { formatTime, pad2 } from '@/lib/format';
+import { formatDuration, formatTime, pad2 } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { livePlan, type LivePlan } from '../partial-json';
 import type { GenerationState } from '../use-generation';
@@ -118,26 +118,13 @@ export function RunPanel({ state, onCancel }: { state: Running; onCancel: () => 
 
       {/* Live preview / raw JSON */}
       <div role="region" aria-label="Live plan panel" className="relative min-w-0 lg:min-h-72">
-        <WindowFrame title={<LiveTitle label={view === 'json' ? 'Trip data' : state.stage === 'validating' ? 'Checking plan' : 'Live plan'} />} action={<ViewToggle value={view} onChange={setView} />} className="h-[22rem] rounded-xl border border-line shadow-none lg:absolute lg:inset-0 lg:h-full" bodyClassName="overflow-hidden">
+        <WindowFrame title={view === 'json' ? 'Trip data' : state.stage === 'validating' ? 'Checking plan' : 'Live plan'} action={<ViewToggle value={view} onChange={setView} />} className="h-[22rem] rounded-xl border border-line shadow-none lg:absolute lg:inset-0 lg:h-full" bodyClassName="overflow-hidden">
           <div className="h-full min-h-0">
             {view === 'preview' ? <LivePreview plan={plan} writing={state.stage === 'drafting' || state.stage === 'connecting'} /> : <RawJson raw={state.raw} />}
           </div>
         </WindowFrame>
       </div>
     </section>
-  );
-}
-
-/** The window title, led by a softly pulsing dot while the plan is still being written. */
-function LiveTitle({ label }: { label: string }) {
-  return (
-    <span className="inline-flex items-center gap-2">
-      <span className="relative flex size-1.5" aria-hidden>
-        <span className="absolute inset-0 animate-ping rounded-full bg-brand opacity-50" />
-        <span className="relative size-1.5 rounded-full bg-brand" />
-      </span>
-      {label}
-    </span>
   );
 }
 
@@ -228,14 +215,22 @@ const enter = { initial: { opacity: 0, y: 4, filter: 'blur(2px)' }, animate: { o
 
 /** A day's stops hang off a thin rail; each stop is a node on it. */
 const RAIL = "relative mt-1.5 flex flex-col before:absolute before:inset-y-2 before:left-[3px] before:w-px before:bg-line before:content-['']";
-const ROW = 'relative grid grid-cols-[4.5rem_minmax(0,1fr)] items-baseline gap-2 py-1 pl-5 text-[13px] leading-5';
+const ROW = 'relative grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-baseline gap-2 py-1 pl-5 text-[13px] leading-5';
 
-/** The rail node: filled once written; the stop being written now is brand-coloured and pulses. */
+/** The rail node: grey once written, brand-coloured on the stop being written now. The caret is the only thing that blinks. */
 function Node({ live }: { live?: boolean }) {
+  return <span aria-hidden className={cn('absolute top-[10.5px] left-0 size-1.75 rounded-full ring-2 ring-surface transition-colors duration-300', live ? 'bg-brand' : 'bg-line-strong')} />;
+}
+
+/** The right-hand column of a stop: where it is and how long it takes, as those fields arrive. */
+function StopMeta({ area, minutes }: { area: string | null; minutes: number | null }) {
+  const duration = formatDuration(minutes);
+  if (!area && !duration) return <span />;
   return (
-    <span className="absolute top-[10.5px] left-0 flex size-1.75" aria-hidden>
-      {live && <span className="absolute inset-0 animate-ping rounded-full bg-brand opacity-40" />}
-      <span className={cn('relative size-1.75 rounded-full ring-2 ring-surface', live ? 'bg-brand' : 'bg-line-strong')} />
+    <span className="tabular flex max-w-44 min-w-0 animate-rise items-baseline justify-end gap-1.5 pl-2 text-[11px] text-subtle">
+      {area && <span className="hidden truncate sm:inline">{area}</span>}
+      {area && duration && <span aria-hidden className="hidden sm:inline">·</span>}
+      {duration && <span className="shrink-0 whitespace-nowrap">{duration}</span>}
     </span>
   );
 }
@@ -246,6 +241,7 @@ function GhostRow({ width }: { width: string }) {
       <span className="absolute top-[10.5px] left-0 size-1.75 rounded-full border border-dashed border-line-strong bg-surface" />
       <span className="skeleton h-2.5 w-9" />
       <span className="skeleton h-2.5" style={{ width }} />
+      <span className="skeleton h-2.5 w-10" />
     </li>
   );
 }
@@ -257,14 +253,24 @@ function LivePreview({ plan, writing }: { plan: LivePlan | null; writing: boolea
   const { ref, following, jump } = usePinnedToBottom<HTMLDivElement>(count);
   const motionProps = reduce ? {} : enter;
   const days = plan?.days ?? [];
+  const stopCount = days.reduce((n, d) => n + d.stops.length, 0);
 
   return (
     <div className="relative h-full min-h-0">
     <div ref={ref} tabIndex={0} role="region" aria-label="Live itinerary preview" className="pane-scroll h-full overflow-y-auto overflow-x-hidden px-5 pb-6 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand" aria-live="off">
       {plan?.destination || plan?.title ? (
-        <motion.div {...motionProps} className="mb-4 pt-4">
-          {plan.destination && <p className="label text-[11px] text-brand">{plan.destination}</p>}
-          {plan.title && <p className="mt-1 font-display text-[22px] leading-tight text-ink-strong">{plan.title}</p>}
+        <motion.div {...motionProps} className="mb-4 flex items-end justify-between gap-4 pt-4">
+          <div className="min-w-0">
+            {plan.destination && <p className="label text-[11px] text-brand">{plan.destination}</p>}
+            {plan.title && <p className="mt-1 font-display text-[22px] leading-tight text-pretty text-ink-strong">{plan.title}</p>}
+          </div>
+          {/* The running total, set against the title so the header fills its row. */}
+          {stopCount > 0 && (
+            <p className="tabular shrink-0 pb-0.5 text-right text-[11px] leading-4 text-subtle">
+              <span className="block text-[13px] font-medium text-ink">{plural(stopCount, 'stop')}</span>
+              {plural(days.length, 'day')}
+            </p>
+          )}
         </motion.div>
       ) : (
         <div className="mb-5 flex pt-4 flex-col gap-2.5" aria-hidden>
@@ -294,6 +300,7 @@ function LivePreview({ plan, writing }: { plan: LivePlan | null; writing: boolea
                         {stop.title}
                         {live && <span className="ml-0.5 inline-block h-3 w-[6px] animate-caret bg-brand align-[-1px]" aria-hidden />}
                       </span>
+                      <StopMeta area={stop.area} minutes={stop.durationMinutes} />
                     </motion.li>
                   );
                 })}

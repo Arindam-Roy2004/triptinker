@@ -64,7 +64,7 @@ function tryParse(text: string): unknown {
   }
 }
 
-export type LiveStop = { time: string | null; title: string };
+export type LiveStop = { time: string | null; title: string; area: string | null; durationMinutes: number | null };
 export type LiveDay = { title: string; stops: LiveStop[] };
 export type LivePlan = { title: string | null; destination: string | null; days: LiveDay[] };
 
@@ -83,7 +83,8 @@ export function livePlan(raw: string): LivePlan | null {
       stops: list(day.stops).flatMap((s) => {
         const stop = record(s);
         const title = text(stop.title);
-        return title ? [{ time: text(stop.time), title }] : [];
+        const minutes = typeof stop.durationMinutes === 'number' && stop.durationMinutes > 0 ? stop.durationMinutes : null;
+        return title ? [{ time: text(stop.time), title, area: text(stop.area), durationMinutes: minutes }] : [];
       }),
     };
   });
