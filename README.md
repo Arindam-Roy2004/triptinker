@@ -113,7 +113,7 @@ I can walk through the generation hook, the partial-JSON parser and the repair p
 - **Plans are capped at 10 days** and briefs at 1,500 characters, to keep output inside the model's token budget.
 - **Voice input** needs microphone permission and sends a short audio clip to the model provider for transcription.
 - **No real maps.** Stops link out to Google Maps rather than showing an embedded map.
-- **Drag on touch screens** uses the drag handle on each row, and the stop's Move earlier and Move later buttons are the fallback.
+- **No drag on phones.** Dragging needs the row handle, which is hidden on small screens. There you reorder with the Move earlier and Move later buttons on each stop.
 
 ## Time spent
 
