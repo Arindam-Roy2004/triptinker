@@ -7,6 +7,7 @@
  *   security/   the shared text sanitiser
  */
 export * from './limits';
+export * from './schema/fields.schema';
 export * from './dto/base.dto';
 export * from './dto/generate-itinerary.dto';
 export * from './dto/refine-itinerary.dto';

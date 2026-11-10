@@ -45,6 +45,23 @@ describe('toWebResults', () => {
     const many = Array.from({ length: 12 }, (_, i) => ({ title: `Site ${i}`, url: `https://site${i}.example/`, content: '' }));
     expect(toWebResults({ results: many }, 4)).toHaveLength(4);
   });
+
+  it('drops malformed hits individually and bounds relevance scores without rounding them', () => {
+    const good = { title: 'Guide', url: 'https://guide.example/', content: 'Useful.', score: 0.79 };
+    for (const change of [{ score: -1 }, { score: 1.01 }, { score: NaN }, { score: '0.8' }, { title: 'x'.repeat(4001) }, { content: 'x'.repeat(20_001) }]) {
+      const results = toWebResults({ results: [{ ...good, url: 'https://bad.example/', ...change }, good] });
+      expect(results).toHaveLength(1);
+      expect(results[0].domain).toBe('guide.example');
+    }
+  });
+
+  it('keeps hits whose snippet or score is missing or null', () => {
+    const results = toWebResults({ results: [
+      { title: 'One', url: 'https://one.example/', content: null, score: null },
+      { title: 'Two', url: 'https://two.example/' },
+    ] });
+    expect(results.map((r) => [r.domain, r.content])).toEqual([['one.example', ''], ['two.example', '']]);
+  });
 });
 
 describe('cleanSnippet', () => {

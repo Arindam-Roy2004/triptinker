@@ -1,4 +1,5 @@
 import {
+  errorEnvelopeSchema,
   healthSchema,
   streamEventSchema,
   transcriptionSchema,
@@ -39,10 +40,9 @@ const STATUS_CODES: Record<number, ErrorCode> = { 400: 'INVALID_INPUT', 413: 'IN
 
 async function errorFromResponse(response: Response): Promise<Outcome> {
   try {
-    const body = (await response.json()) as { error?: { code?: string; message?: string; retryable?: boolean } };
-    const parsed = streamEventSchema.safeParse({ type: 'error', ...body.error });
-    if (parsed.success && parsed.data.type === 'error') {
-      const { code, message, retryable } = parsed.data;
+    const parsed = errorEnvelopeSchema.safeParse(await response.json());
+    if (parsed.success) {
+      const { code, message, retryable } = parsed.data.error;
       return { kind: 'error', code, message, retryable };
     }
   } catch {

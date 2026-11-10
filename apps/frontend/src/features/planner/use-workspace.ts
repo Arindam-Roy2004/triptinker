@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
-import { GenerateItineraryDto, type GenerateItineraryInput } from '@triptinker/contracts';
+import { GenerateItineraryDto, LIMITS, textLength, type GenerateItineraryInput } from '@triptinker/contracts';
 import { STORAGE_KEYS } from '@/lib/keys';
 import { readStored, writeStored } from '@/lib/storage';
-import { tripSchema, useTripStore } from './trip-store';
+import { storedTripSchema, useTripStore } from './trip-store';
 
 const WORKSPACE_KEY = STORAGE_KEYS.workspace;
 // The draft may be half-written, so it is not held to the request's minimum length.
-const workspaceSchema = z.object({ trip: tripSchema.nullable(), form: GenerateItineraryDto.schema.extend({ brief: z.string().max(2000) }) });
+export const workspaceSchema = z.strictObject({
+  trip: storedTripSchema.nullable(),
+  // Keep the draft verbatim, including trailing spaces and unfinished text.
+  form: GenerateItineraryDto.schema.extend({ brief: z.string().max(LIMITS.briefMax * 2).refine((text) => textLength(text) <= LIMITS.briefMax) }),
+});
 export const EMPTY_FORM: GenerateItineraryInput = { brief: '', days: null, pace: 'balanced' };
 
 function restoreWorkspace() {

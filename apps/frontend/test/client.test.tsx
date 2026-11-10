@@ -57,6 +57,14 @@ describe('streamPlan', () => {
     expect(await streamPlan(request, { signal: new AbortController().signal })).toEqual({ kind: 'error', code: 'NOT_CONFIGURED', message: 'No key', retryable: false });
   });
 
+  it('accepts bounded field issues in an HTTP error envelope', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ error: {
+      code: 'INVALID_INPUT', message: 'Check the trip.', retryable: false,
+      issues: [{ field: 'itinerary.days.0.stops.0.title', message: 'A title is required.' }],
+    } }, { status: 400 })));
+    expect(await streamPlan(request, { signal: new AbortController().signal })).toEqual({ kind: 'error', code: 'INVALID_INPUT', message: 'Check the trip.', retryable: false });
+  });
+
   it('gives up on a silent connection', async () => {
     const s = controllableStream();
     vi.stubGlobal('fetch', vi.fn(async () => s.response));

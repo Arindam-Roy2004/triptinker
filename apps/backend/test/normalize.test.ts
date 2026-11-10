@@ -48,6 +48,17 @@ describe('normalizeItinerary', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  it('removes hidden formatting from model text but keeps joiners in emoji and scripts', () => {
+    const raw = modelOutput();
+    const stop = raw.itinerary.days[0].stops[0] as { title: string; tip: string | null };
+    stop.title = 'שוק\u200F הכרמל\u202E';
+    stop.tip = 'Bring the 👨\u200D👩\u200D👧 to کتاب\u200Cخانه';
+    const result = normalizeItinerary(raw, options());
+    if (result.ok !== true) throw new Error('expected success');
+    expect(result.itinerary.days[0].stops[0].title).toBe('שוק הכרמל');
+    expect(result.itinerary.days[0].stops[0].tip).toBe('Bring the 👨\u200D👩\u200D👧 to کتاب\u200Cخانه');
+  });
+
   it('accepts a bare itinerary without the envelope', () => {
     const result = normalizeItinerary(modelOutput().itinerary, options());
     expect(result.ok).toBe(true);

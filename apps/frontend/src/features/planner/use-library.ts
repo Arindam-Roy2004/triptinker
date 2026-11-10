@@ -1,20 +1,27 @@
 import { useCallback, useState } from 'react';
 import { z } from 'zod';
+import { LIMITS } from '@triptinker/contracts';
 import { STORAGE_KEYS } from '@/lib/keys';
 import { readStored, writeStored } from '@/lib/storage';
-import { tripSchema, type Trip } from './trip-store';
+import { storedTripSchema, type Trip } from './trip-store';
 
 const KEY = STORAGE_KEYS.library;
-const MAX_TRIPS = 24;
+const MAX_TRIPS = LIMITS.maxSavedTrips;
 
 /** Each entry is validated on its own so one corrupt trip can't wipe the whole library. */
 function load(): Trip[] {
-  const raw = readStored(KEY, z.array(z.unknown())) ?? [];
+  const raw = readStored(KEY, z.array(z.unknown()).max(MAX_TRIPS)) ?? [];
+  const seen = new Set<string>();
   return raw
-    .map((entry) => tripSchema.safeParse(entry))
+    .map((entry) => storedTripSchema.safeParse(entry))
     .filter((result) => result.success)
     .map((result) => result.data)
-    .sort((a, b) => b.updatedAt - a.updatedAt);
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .filter((trip) => {
+      if (seen.has(trip.id)) return false;
+      seen.add(trip.id);
+      return true;
+    });
 }
 
 export function useLibrary() {

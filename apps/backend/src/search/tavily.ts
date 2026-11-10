@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MAX_SOURCES, type WebSource } from '@triptinker/contracts';
+import { LIMITS, MAX_SOURCES, sanitizeUserText, webSourceSchema, type WebSource } from '@triptinker/contracts';
 export { searchQuery } from './query';
 
 /** One search hit: the link shown to the traveller, plus a snippet that only the model sees. */
@@ -43,27 +43,42 @@ export const TRAVEL_DOMAINS = [
 // Tavily's response is untrusted input like any other: validate the parts we use, ignore the rest.
 const responseSchema = z
   .object({
-    results: z.array(z.object({ title: z.string().catch(''), url: z.string().catch(''), content: z.string().catch(''), score: z.number().catch(1) })).catch([]),
+    // Validate hits separately so one malformed result does not discard valid neighbours.
+    results: z.array(z.unknown()).max(100).catch([]),
   })
   .catch({ results: [] });
+const hitSchema = z.object({
+  title: z.string().min(1).max(4000),
+  url: z.string().min(1).max(LIMITS.sourceUrlMax),
+  // A missing or null snippet or score is tolerated, as before; a wrong type or range is not.
+  content: z.string().max(20_000).nullish().transform((value) => value ?? ''),
+  // Relevance is a fractional score, not a count.
+  score: z.number().min(0).max(1).nullish().transform((value) => value ?? 1),
+});
+const resultLimitSchema = z.number().int().min(1).max(MAX_SOURCES);
 
 /** Plain text only: no tags, no control characters, no runs of whitespace, bounded length. */
 export function cleanSnippet(text: string, max = SNIPPET_MAX) {
-  const plain = text
+  const plain = sanitizeUserText(text)
     .replace(/<[^>]*>/g, ' ')
     .replace(/[<>]/g, ' ')
     // eslint-disable-next-line no-control-regex -- removing control characters is the point
     .replace(/[\u0000-\u001F\u007F]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-  return plain.length > max ? `${plain.slice(0, max - 1).trimEnd()}…` : plain;
+  const chars = [...plain];
+  return chars.length > max ? `${chars.slice(0, max - 1).join('').trimEnd()}…` : plain;
 }
 
 /** Keep https results with a usable title, one per site, best first (Tavily orders by relevance). */
-export function toWebResults(raw: unknown, max = MAX_SOURCES): WebResult[] {
+export function toWebResults(raw: unknown, max: number = MAX_SOURCES): WebResult[] {
+  const limit = resultLimitSchema.parse(max);
   const seen = new Set<string>();
   const out: WebResult[] = [];
-  for (const hit of responseSchema.parse(raw).results) {
+  for (const candidate of responseSchema.parse(raw).results) {
+    const parsed = hitSchema.safeParse(candidate);
+    if (!parsed.success) continue;
+    const hit = parsed.data;
     if (hit.score < MIN_SCORE) continue;
     let url: URL;
     try {
@@ -73,16 +88,19 @@ export function toWebResults(raw: unknown, max = MAX_SOURCES): WebResult[] {
     }
     if (url.protocol !== 'https:' || url.username || url.password) continue;
     const domain = url.hostname.replace(/^www\./, '');
-    const title = cleanSnippet(hit.title, 200);
+    const title = cleanSnippet(hit.title, LIMITS.sourceTitleMax);
     if (!title || seen.has(domain)) continue;
+    const source = webSourceSchema.safeParse({ title, url: url.href, domain });
+    if (!source.success) continue;
     seen.add(domain);
-    out.push({ title, url: url.href, domain, content: cleanSnippet(hit.content) });
-    if (out.length === max) break;
+    out.push({ ...source.data, content: cleanSnippet(hit.content) });
+    if (out.length === limit) break;
   }
   return out;
 }
 
 export function createTavilySearch({ apiKey, timeoutMs = 6_000, maxResults = MAX_SOURCES, fetchImpl = fetch }: TavilyOptions): Search {
+  const limit = resultLimitSchema.parse(maxResults);
   return async (query, signal) => {
     const response = await fetchImpl('https://api.tavily.com/search', {
       method: 'POST',
@@ -91,7 +109,7 @@ export function createTavilySearch({ apiKey, timeoutMs = 6_000, maxResults = MAX
         query,
         search_depth: 'basic',
         topic: 'general',
-        max_results: maxResults + 2, // a few spare, since duplicates and non-https links are dropped
+        max_results: limit + 2, // a few spare, since duplicates and non-https links are dropped
         include_answer: false,
         include_images: false,
         include_raw_content: false,
@@ -100,6 +118,6 @@ export function createTavilySearch({ apiKey, timeoutMs = 6_000, maxResults = MAX
       signal: AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]),
     });
     if (!response.ok) throw new Error(`Tavily responded with ${response.status}`);
-    return toWebResults(await response.json(), maxResults);
+    return toWebResults(await response.json(), limit);
   };
 }

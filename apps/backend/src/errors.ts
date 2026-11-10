@@ -1,4 +1,4 @@
-import type { ErrorCode } from '@triptinker/contracts';
+import { REPAIRABLE_CODES, type ErrorCode } from '@triptinker/contracts';
 
 /** A failure we understand. `message` is written for the traveller and is safe to show. */
 export class AppError extends Error {
@@ -48,4 +48,4 @@ const RETRYABLE: ReadonlySet<ErrorCode> = new Set([
 export const appError = (code: ErrorCode, detail?: string) => new AppError(code, USER_MESSAGES[code], RETRYABLE.has(code), detail);
 
 /** Output problems that a second, corrective attempt has a real chance of fixing. */
-export const REPAIRABLE: ReadonlySet<ErrorCode> = new Set(['EMPTY_OUTPUT', 'MALFORMED_JSON', 'SCHEMA_MISMATCH', 'TRUNCATED']);
+export const REPAIRABLE: ReadonlySet<ErrorCode> = new Set(REPAIRABLE_CODES);

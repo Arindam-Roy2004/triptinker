@@ -1,4 +1,4 @@
-import type { ErrorCode, StreamEvent } from '@triptinker/contracts';
+import { LIMITS, type ErrorCode, type StreamEvent } from '@triptinker/contracts';
 import { extractJson, estimateProgress, normalizeItinerary, type Normalized } from './normalize';
 import { AppError, REPAIRABLE, USER_MESSAGES, appError } from './errors';
 import { repairMessages, type ChatMessage } from './prompt';
@@ -62,7 +62,7 @@ async function attempt(messages: ChatMessage[], opts: RunOptions): Promise<Attem
       }
       if (chunk.type === 'keepalive') continue;
       output += chunk.text;
-      if (output.length > 200_000) throw appError('SCHEMA_MISMATCH', 'response exceeded 200k characters');
+      if (output.length > LIMITS.maxModelOutputChars) throw appError('SCHEMA_MISMATCH', 'response exceeded 200k characters');
       if (!drafting) {
         drafting = true;
         emit({ type: 'stage', stage: 'drafting' });

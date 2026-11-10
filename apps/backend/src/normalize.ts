@@ -1,4 +1,4 @@
-import { CATEGORIES, LIMITS, itinerarySchema, type Category, type Day, type ErrorCode, type Itinerary, type Stop } from '@triptinker/contracts';
+import { CATEGORIES, LIMITS, itinerarySchema, stripUnsafeText, type Category, type Day, type ErrorCode, type Itinerary, type Stop } from '@triptinker/contracts';
 
 /**
  * Turns raw model text into a validated Itinerary — or a precise reason it can't.
@@ -53,9 +53,11 @@ const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'obj
 
 function str(v: unknown, max: number): string | null {
   if (typeof v !== 'string') return null;
-  const s = v.replace(/\s+/g, ' ').trim();
+  // Drop only what the schema rejects: joiners in emoji and Persian or Indic words must survive.
+  const s = stripUnsafeText(v).replace(/\s+/g, ' ').trim();
   if (!s) return null;
-  return s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s;
+  const chars = [...s];
+  return chars.length > max ? `${chars.slice(0, max - 1).join('').trimEnd()}…` : s;
 }
 
 export function normalizeTime(v: unknown): string | null {
@@ -78,7 +80,7 @@ export function normalizeTime(v: unknown): string | null {
 function duration(v: unknown): number | null {
   const n = typeof v === 'string' ? Number.parseInt(v, 10) : v;
   if (typeof n !== 'number' || !Number.isFinite(n)) return null;
-  return Math.min(720, Math.max(5, Math.round(n)));
+  return Math.min(LIMITS.durationMax, Math.max(LIMITS.durationMin, Math.round(n)));
 }
 
 const CATEGORY_ALIASES: Record<string, Category> = {
@@ -104,7 +106,7 @@ export function normalizeItinerary(value: unknown, { newId, knownIds }: Options)
   if (!isRecord(value)) return fail('SCHEMA_MISMATCH', 'The response was not a JSON object.');
 
   if (value.status === 'unplannable') {
-    const reason = str(value.reason, 300);
+    const reason = str(value.reason, LIMITS.reasonMax);
     return { ok: 'unplannable', reason: reason ?? 'The brief does not describe a trip that can be planned.' };
   }
 
@@ -136,7 +138,7 @@ export function normalizeItinerary(value: unknown, { newId, knownIds }: Options)
     const stops: Stop[] = [];
     for (const rawStop of rawDay.stops) {
       totalStops += 1;
-      const title = isRecord(rawStop) ? str(rawStop.title ?? rawStop.name, 120) : null;
+      const title = isRecord(rawStop) ? str(rawStop.title ?? rawStop.name, LIMITS.titleMax) : null;
       if (!isRecord(rawStop) || !title) {
         droppedStops += 1;
         continue;
@@ -149,11 +151,11 @@ export function normalizeItinerary(value: unknown, { newId, knownIds }: Options)
         id: claimId(rawStop.ref ?? rawStop.id),
         time: normalizeTime(rawStop.time),
         title,
-        description: str(rawStop.description, 600) ?? '',
+        description: str(rawStop.description, LIMITS.descriptionMax) ?? '',
         category: category(rawStop.category),
         durationMinutes: duration(rawStop.durationMinutes ?? rawStop.duration),
-        area: str(rawStop.area ?? rawStop.neighborhood, 80),
-        tip: str(rawStop.tip, 300),
+        area: str(rawStop.area ?? rawStop.neighborhood, LIMITS.areaMax),
+        tip: str(rawStop.tip, LIMITS.tipMax),
       });
     }
     if (stops.length === 0) {
@@ -162,8 +164,8 @@ export function normalizeItinerary(value: unknown, { newId, knownIds }: Options)
     }
     days.push({
       id: newId(),
-      title: str(rawDay.title, 100) ?? `Day ${index + 1}`,
-      summary: str(rawDay.summary, 300) ?? '',
+      title: str(rawDay.title, LIMITS.dayTitleMax) ?? `Day ${index + 1}`,
+      summary: str(rawDay.summary, LIMITS.daySummaryMax) ?? '',
       stops,
     });
   }
@@ -181,13 +183,13 @@ export function normalizeItinerary(value: unknown, { newId, knownIds }: Options)
   if (trip.days.length > LIMITS.maxDays) warnings.push(`Kept the first ${LIMITS.maxDays} days of a longer plan.`);
 
   const notes = Array.isArray(trip.notes)
-    ? trip.notes.map((n) => str(n, 240)).filter((n): n is string => n !== null).slice(0, LIMITS.maxNotes)
+    ? trip.notes.map((n) => str(n, LIMITS.noteMax)).filter((n): n is string => n !== null).slice(0, LIMITS.maxNotes)
     : [];
 
   const candidate: Itinerary = {
-    title: str(trip.title, 120) ?? 'Untitled trip',
-    destination: str(trip.destination, 80) ?? 'Somewhere',
-    summary: str(trip.summary, 500) ?? '',
+    title: str(trip.title, LIMITS.titleMax) ?? 'Untitled trip',
+    destination: str(trip.destination, LIMITS.destinationMax) ?? 'Somewhere',
+    summary: str(trip.summary, LIMITS.summaryMax) ?? '',
     days,
     notes,
   };
@@ -202,7 +204,7 @@ export function normalizeItinerary(value: unknown, { newId, knownIds }: Options)
 export function estimateProgress(partial: string) {
   // Only days have a "stops" key and only stops have a "category" key (see the prompt schema).
   return {
-    days: (partial.match(/"stops"\s*:/g) ?? []).length,
-    stops: (partial.match(/"category"\s*:/g) ?? []).length,
+    days: Math.min(LIMITS.maxDays, (partial.match(/"stops"\s*:/g) ?? []).length),
+    stops: Math.min(LIMITS.maxTotalStops, (partial.match(/"category"\s*:/g) ?? []).length),
   };
 }

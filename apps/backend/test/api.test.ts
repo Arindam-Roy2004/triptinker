@@ -1,6 +1,6 @@
 import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { StreamEvent } from '@triptinker/contracts';
+import { errorEnvelopeSchema, streamEventSchema, type StreamEvent } from '@triptinker/contracts';
 import { createApp, type AppOptions } from '../src/app';
 import { createOpenAiProvider, type Chunk } from '../src/provider';
 import { modelOutput, sample, scriptedProvider } from './helpers';
@@ -31,7 +31,7 @@ async function events(response: Response): Promise<StreamEvent[]> {
   return text
     .split('\n')
     .filter((line) => line.startsWith('data: '))
-    .map((line) => JSON.parse(line.slice(6)));
+    .map((line) => streamEventSchema.parse(JSON.parse(line.slice(6))));
 }
 
 const post = (base: string, path: string, body: unknown, headers: Record<string, string> = {}) =>
@@ -63,6 +63,19 @@ describe('HTTP API', () => {
     const res = await post(base, '/api/itinerary', brief);
     expect(res.status).toBe(503);
     expect(((await res.json()) as { error: { code: string } }).error.code).toBe('NOT_CONFIGURED');
+  });
+
+  it('rejects malformed nested refinement data before calling the provider', async () => {
+    const provider = scriptedProvider([]);
+    const base = await serve({ createProvider: () => provider });
+    const itinerary = sample();
+    itinerary.days[0].stops[0].durationMinutes = 12.5;
+    itinerary.days[1].stops[0].id = itinerary.days[0].stops[0].id;
+    const response = await post(base, '/api/itinerary/refine', { instruction: 'Make it slower', itinerary });
+    expect(response.status).toBe(400);
+    const body = errorEnvelopeSchema.parse(await response.json());
+    expect(body.error.issues?.map((issue) => issue.field)).toContain('itinerary.days.0.stops.0.durationMinutes');
+    expect(provider.calls).toBe(0);
   });
 
   it('streams a validated itinerary as server-sent events', async () => {
