@@ -18,9 +18,9 @@
     <link rel="manifest" href="/site.webmanifest?v=6" />
     <title>TripTinker | Plan a trip in one sentence</title>
     <script>
-      // Apply the theme before first paint to avoid a flash. Key mirrors STORAGE_KEYS.theme.
+      // Apply the theme before first paint. Fall back to the old key until startup migrates it.
       try {
-        var t = localStorage.getItem('roamfar:theme');
+        var t = localStorage.getItem('triptinker:theme') ?? localStorage.getItem('roamfar:theme');
         if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
       } catch (e) {}
     </script>

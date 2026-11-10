@@ -48,7 +48,7 @@ export function createTranscriber(config: SttConfig, fetchImpl: typeof fetch = f
           headers: {
             'Content-Type': 'application/json',
             ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
-            'HTTP-Referer': 'https://github.com/roamfar-trip-planner',
+            'HTTP-Referer': 'https://triptinker.royarindam.page',
             'X-Title': 'TripTinker',
           },
           body: JSON.stringify({
