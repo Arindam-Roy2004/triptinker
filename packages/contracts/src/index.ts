@@ -14,6 +14,7 @@ export * from './schema/error.schema';
 export * from './schema/itinerary.schema';
 export * from './schema/events.schema';
 export * from './schema/health.schema';
+export * from './schema/transcription.schema';
 export * from './schema/simulation.schema';
 export * from './schema/source.schema';
 export * from './security/sanitize';

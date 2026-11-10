@@ -11,7 +11,4 @@ export const healthSchema = z.object({
   voice: z.boolean().default(false),
 });
 
-// POST /api/transcribe (body: audio/wav) → 200
-export const transcriptionSchema = z.object({ text: z.string() });
-export type Transcription = z.infer<typeof transcriptionSchema>;
 export type Health = z.infer<typeof healthSchema>;
