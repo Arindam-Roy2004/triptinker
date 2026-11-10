@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { GenerateItineraryDto, LIMITS, SAMPLE_ITINERARY, SAMPLE_REQUEST, type GenerateItineraryInput, type Health, type Simulation, type Stop } from '@triptinker/contracts';
+import { GenerateItineraryDto, RefineItineraryDto, SAMPLE_ITINERARY, SAMPLE_REQUEST, type GenerateItineraryInput, type Health, type Simulation, type Stop } from '@triptinker/contracts';
 import { useScene } from '@/features/scenes/use-scene';
 import { fetchHealth } from './api';
 import type { PendingRefinement } from './components/refine-bar';
@@ -24,6 +24,9 @@ function exportTrip(trip: Trip, format: ExportFormat) {
   if (!navigator.clipboard) return failed();
   navigator.clipboard.writeText(tripAsText(itinerary)).then(() => toast.success('Trip copied', { description: 'Paste it into a chat, email or notes app.' }), failed);
 }
+
+/** Elements that use ← and → themselves; scene browsing leaves the keys to them. */
+const ARROW_KEY_OWNERS = 'input, textarea, select, [contenteditable="true"], [role="tablist"], [role="radiogroup"], [role="listbox"], [role="slider"], [role="menu"], [role="grid"], [aria-roledescription^="sortable"]';
 
 const scrollTo = (id: string) => requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 
@@ -105,15 +108,15 @@ export function usePlanner() {
   const refine = useCallback(
     (instruction: string) => {
       if (!trip) return;
-      const text = instruction.trim();
-      if (text.length < LIMITS.instructionMin) {
-        setRefineError('Describe the change you want.');
+      const { errors, value } = RefineItineraryDto.validate({ instruction, itinerary: trip.itinerary });
+      if (errors) {
+        setRefineError(errors[0]?.message ?? 'Check the requested change.');
         return;
       }
+      const { instruction: text, itinerary: base } = value;
       setRefineError(null);
       setRefineText(text);
       lastRun.current = { kind: 'refine', instruction: text };
-      const base = trip.itinerary;
       void generation.start(
         'refine',
         { endpoint: '/api/itinerary/refine', body: { instruction: text, itinerary: base } },
@@ -221,6 +224,30 @@ export function usePlanner() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [store, focusPrompt]);
+
+  // ← / → browse the scenes, like the caption's arrows, whenever the arrow keys are not already
+  // someone else's: text fields, the day tabs, keyboard reordering, radio groups, menus, dialogs.
+  const browse = useRef(scene);
+  useEffect(() => {
+    browse.current = scene;
+  });
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      if (event.defaultPrevented || event.repeat || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest(ARROW_KEY_OWNERS)) return;
+      if (document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]')) return;
+      // Only while the scene is on screen: browsing a picture nobody can see would be a surprise.
+      const rect = document.getElementById('scene')?.getBoundingClientRect();
+      if (!rect || rect.bottom < 120 || rect.top > window.innerHeight - 120) return;
+      event.preventDefault();
+      if (event.key === 'ArrowRight') browse.current.next();
+      else browse.current.prev();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const activeDay = trip?.itinerary.days.some((d) => d.id === activeDayId) ? activeDayId! : (trip?.itinerary.days[0]?.id ?? '');
   const problem = state.status === 'error' || state.status === 'unplannable' ? state : null;

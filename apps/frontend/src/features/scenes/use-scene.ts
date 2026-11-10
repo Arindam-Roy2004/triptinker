@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { STORAGE_KEYS } from '@/lib/keys';
 import { FROM_PROMPT, SCENES, sceneForDestination, type Scene, type SceneTransition } from './scenes';
 
@@ -6,18 +6,25 @@ const KEY = STORAGE_KEYS.sceneVisit;
 
 /** Each visit advances one step through all scenes, so a reload always shows a new place. */
 function nextVisitIndex(): number {
+  const initial = document.documentElement.dataset.sceneVisit;
+  if (initial !== undefined && /^\d+$/.test(initial)) {
+    const index = Number(initial);
+    if (index < SCENES.length) return index;
+  }
   try {
     const previous = Number.parseInt(window.localStorage.getItem(KEY) ?? '-1', 10);
-    const next = Number.isFinite(previous) ? previous + 1 : 0;
-    window.localStorage.setItem(KEY, String(next));
-    return next;
+    return Number.isFinite(previous) && previous >= -1 ? ((previous % SCENES.length) + 1) % SCENES.length : 0;
   } catch {
-    return Math.floor(Math.random() * SCENES.length);
+    return 0;
   }
 }
 
 export function useScene() {
   const [visit] = useState(nextVisitIndex);
+  // The initializer stays pure under StrictMode. The head preload and React use one index.
+  useEffect(() => {
+    try { window.localStorage.setItem(KEY, String(visit)); } catch { /* Rotation still works without storage. */ }
+  }, [visit]);
   const [offset, setOffset] = useState(0);
   /** A destination match overrides the rotation until the traveller browses again. */
   const [pinned, setPinned] = useState<Scene | null>(null);

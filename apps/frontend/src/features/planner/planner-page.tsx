@@ -1,5 +1,6 @@
 import { ArrowRight, Plus, X } from '@phosphor-icons/react';
 import { AnimatePresence } from 'motion/react';
+import { useState } from 'react';
 import { LIMITS } from '@triptinker/contracts';
 import { HeroGlow } from '@/components/site/hero-glow';
 import { SiteHeader } from '@/components/site/site-header';
@@ -7,7 +8,7 @@ import { ThemeToggle } from '@/components/site/theme-toggle';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { SceneCaption, SceneStage } from '@/features/scenes/scene-stage';
-import { sceneSrc } from '@/features/scenes/scenes';
+import { SCENES, sceneSrc } from '@/features/scenes/scenes';
 import { FailureLab } from './components/failure-lab';
 import { LibraryMenu } from './components/library-menu';
 import { PromptCard } from './components/prompt-card';
@@ -37,6 +38,8 @@ export function PlannerPage() {
     openTrip, startNew, requestNew, save, actionsFor, askForDay, problem, generating,
     refining, exportCurrentTrip, reorder,
   } = usePlanner();
+  // The caption names the scene on screen, so it changes when the picture starts to, not before.
+  const [revealed, setRevealed] = useState(scene.scene);
 
   const runStatus = (kind: 'generate' | 'refine') => {
     if (runKind !== kind) return null;
@@ -112,7 +115,7 @@ export function PlannerPage() {
         {/* Scene, prompt and status strip */}
         <div id="scene" className="scroll-mt-20 overflow-hidden rounded-md shadow-lift">
           {/* The card sits in the lower part of the scene, leaving the landmark visible above it. */}
-          <SceneStage scene={scene.scene} transition={scene.transition} dim={generating} className="flex min-h-[520px] flex-col items-center justify-end px-4 pt-36 pb-16 md:min-h-[540px] md:pb-20">
+          <SceneStage scene={scene.scene} transition={scene.transition} dim={generating} onReveal={setRevealed} className="flex min-h-[520px] flex-col items-center justify-end px-4 pt-36 pb-16 md:min-h-[540px] md:pb-20">
             <div className="relative z-10 flex w-full max-w-2xl flex-col items-center gap-2">
               <PromptCard
                 inputRef={promptRef}
@@ -153,8 +156,8 @@ export function PlannerPage() {
               )}
             </div>
             <SceneCaption
-              scene={scene.scene}
-              position={scene.position}
+              scene={revealed}
+              position={{ index: SCENES.findIndex((s) => s.id === revealed.id), total: SCENES.length }}
               onPrev={scene.prev}
               onNext={scene.next}
               className="absolute right-4 bottom-4 z-10 max-w-[calc(100%-2rem)]"

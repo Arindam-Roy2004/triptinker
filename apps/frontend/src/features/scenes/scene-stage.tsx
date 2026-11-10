@@ -1,14 +1,11 @@
 import { CaretLeft, CaretRight } from '@phosphor-icons/react';
 import { useReducedMotion } from 'motion/react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { FROM_PROMPT, sceneSrc, sceneSrcSet, type Scene, type SceneTransition } from './scenes';
-
-const CELL = 8; // CSS px per dissolve block: fine enough to read as a shimmer of pixels, not as tiles
-const DURATION = 1000;
-const VEIL_IN = 700;
-const VEIL_OUT = 450;
-
+import { CELL, LightField, MOTION, hexColor, veilAlpha } from './pixel-motion';
+import { SCENE_SIZES, loadSceneImage, sceneLuminance, warmScene } from './scene-images';
+import { FROM_PROMPT, SCENES, sceneSrc, sceneSrcSet, type Scene, type SceneTransition } from './scenes';
 
 /**
  * Cell indices in the order they change. A ripple goes nearest-to-the-point first; a wipe goes
@@ -34,149 +31,243 @@ function cellOrder(cols: number, rows: number, transition: SceneTransition) {
   return keyed.map(([i]) => i);
 }
 
-function loadImage(src: string) {
-  return new Promise<HTMLImageElement>((resolve, reject) => {
-    const img = new Image();
-    img.decoding = 'async';
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = src;
-  });
-}
+const saveData = () => {
+  const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+  return !!connection?.saveData || /(^|-)2g$/.test(connection?.effectiveType ?? '');
+};
+
+/** The light takes the theme's clay accent: the colour of the running ring and the stop button. */
+const accentOf = (element: Element) => hexColor(getComputedStyle(element).getPropertyValue('--clay'), [217, 119, 87]);
+
+/** What the dissolve canvas holds: nothing, an interrupted dissolve, or a finished one awaiting the <img>. */
+type Painted = 'none' | 'partial' | 'handoff';
 
 /**
- * A full-bleed pixel-art scene. The pixels only move for a reason:
+ * A full-bleed pixel-art scene. The pixels only move for a reason, and every effect shares the
+ * motion system in pixel-motion.ts:
  *
  *  - Changing `scene` plays a dissolve shaped by `transition` (a ripple from the prompt, or a
- *    wipe in the direction being browsed): the next image is revealed block by block on a
- *    canvas, then handed to the <img>.
- *  - `dim` (a plan is being written) draws a dark veil over the scene the same way, spreading
- *    from the prompt card, and lifts it again when the work ends.
+ *    wipe in the direction being browsed). Arriving pixels catch a soft light, then the finished
+ *    image is handed to the <img>. A new change mid-dissolve continues from what is on screen.
+ *  - `dim` (a plan is being written) spreads a veil from the prompt card behind a ring of light,
+ *    keeps a twinkle and a pulse in time with the running ring going while the work runs, and
+ *    lifts the same way when it ends.
  *
- * The whole stack drifts slowly (Ken Burns). Under reduced motion everything is instant.
+ * The light is one field over the frame (pixel-motion.ts), drawn like PixelButton: gapped pixels,
+ * each with its own colour and brightness, lit at random as a front passes, then decaying.
+ *
+ * `onReveal` fires when a scene starts to appear, so a caption can change with the picture.
+ * The whole stack drifts slowly (Ken Burns). Reduced motion switches once the image is ready.
  */
-export function SceneStage({ scene, dim = false, transition = FROM_PROMPT, className, children }: { scene: Scene; dim?: boolean; transition?: SceneTransition; className?: string; children?: ReactNode }) {
+export function SceneStage({
+  scene,
+  dim = false,
+  transition = FROM_PROMPT,
+  onReveal,
+  className,
+  children,
+}: {
+  scene: Scene;
+  dim?: boolean;
+  transition?: SceneTransition;
+  onReveal?: (scene: Scene) => void;
+  className?: string;
+  children?: ReactNode;
+}) {
   const reduce = useReducedMotion();
   const [shown, setShown] = useState(scene);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
-  const veilRef = useRef<HTMLCanvasElement>(null);
+  const lightRef = useRef<HTMLCanvasElement>(null);
+  const light = useRef<LightField | null>(null);
+  const painted = useRef<Painted>('none');
   const clearOnLoad = useRef(false);
   const token = useRef(0);
   const transitionRef = useRef(transition);
   transitionRef.current = transition;
+  const onRevealRef = useRef(onReveal);
+  onRevealRef.current = onReveal;
+  const veilOn = useRef(false);
 
-  // The working veil: one canvas pixel per block, scaled up crisp by CSS.
   useEffect(() => {
-    const canvas = veilRef.current;
+    if (lightRef.current) light.current = new LightField(lightRef.current);
+    return () => light.current?.stop();
+  }, []);
+
+  // Preload: the current scene, then its neighbours, then (when idle) every other scene, so each
+  // browse responds with the same timing instead of waiting on the network further out.
+  useEffect(() => {
+    if (saveData()) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    void loadSceneImage(scene)
+      .then(() => {
+        if (cancelled) return;
+        timer = setTimeout(async () => {
+          const at = SCENES.findIndex((candidate) => candidate.id === scene.id);
+          for (const delta of [-1, 1]) void loadSceneImage(SCENES[(at + delta + SCENES.length) % SCENES.length], 'low').catch(() => undefined);
+          for (let step = 2; step <= SCENES.length / 2 && !cancelled; step++) {
+            for (const delta of [step, -step]) {
+              if (cancelled) return;
+              await warmScene(SCENES[(at + delta + SCENES.length) % SCENES.length]);
+            }
+          }
+        }, 150);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [scene]);
+
+  // The veil's strength follows the scene on screen: bright scenes need more than night scenes.
+  useEffect(() => {
+    let cancelled = false;
+    void loadSceneImage(shown)
+      .then((img) => {
+        const field = light.current;
+        if (cancelled || !field) return;
+        field.alpha = veilAlpha(sceneLuminance(img));
+        field.repaint();
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [shown]);
+
+  // The working veil.
+  useEffect(() => {
+    const field = light.current;
     const frame = frameRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!canvas || !frame || !ctx) return;
-    if (dim) {
-      canvas.width = Math.max(1, Math.ceil(frame.clientWidth / CELL));
-      canvas.height = Math.max(1, Math.ceil(frame.clientHeight / CELL));
-    }
-    const cols = canvas.width;
-    const rows = canvas.height;
-    ctx.fillStyle = 'rgb(12 10 9 / 0.45)';
+    if (!field || !frame) return;
+    // Nothing to lift on first render, or after a run that never dimmed the scene.
+    if (!dim && !veilOn.current) return;
+    veilOn.current = dim;
+    field.resize(frame.clientWidth, frame.clientHeight, accentOf(frame));
     if (reduce) {
-      ctx.clearRect(0, 0, cols, rows);
-      if (dim) ctx.fillRect(0, 0, cols, rows);
+      field.settle(dim);
       return;
     }
-    const order = cellOrder(cols, rows, FROM_PROMPT);
-    const duration = dim ? VEIL_IN : VEIL_OUT;
-    let done = 0;
-    let raf = 0;
-    const start = performance.now();
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / duration);
-      const target = Math.floor((1 - (1 - t) ** 2) * order.length);
-      for (; done < target; done++) {
-        const x = order[done] % cols;
-        const y = Math.floor(order[done] / cols);
-        ctx.clearRect(x, y, 1, 1);
-        if (dim) ctx.fillRect(x, y, 1, 1);
-      }
-      if (t < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
+    // A veil front still travelling is replaced, so a quick stop turns the veil around mid-way.
+    field.front({ kind: 'ring', x: FROM_PROMPT.x, y: FROM_PROMPT.y }, dim ? MOTION.veilIn : MOTION.veilOut, dim);
+    const timer = dim ? setTimeout(() => field.working({ x: FROM_PROMPT.x, y: FROM_PROMPT.y }), MOTION.veilIn.duration) : undefined;
     return () => {
-      // Interrupted mid-way (a quick stop, or a restart): settle to the state this run was heading for.
-      cancelAnimationFrame(raf);
-      ctx.clearRect(0, 0, cols, rows);
-      if (dim) ctx.fillRect(0, 0, cols, rows);
+      clearTimeout(timer);
+      field.working(null);
     };
   }, [dim, reduce]);
 
+  // The scene dissolve.
   useEffect(() => {
-    if (scene.id === shown.id) return;
+    if (scene.id === shown.id && painted.current !== 'partial') return;
     const run = ++token.current;
     const canvas = canvasRef.current;
     const frame = frameRef.current;
-    if (reduce || !canvas || !frame) {
-      setShown(scene);
-      return;
-    }
-
     let raf = 0;
-    const width = frame.clientWidth;
-    const height = frame.clientHeight;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const src = sceneSrc(scene, width * dpr > 1100 ? 1920 : 960);
+    let handedOff = false;
+    clearOnLoad.current = false;
+    // Continuing an interrupted dissolve skips the pause: the scene is already in motion.
+    const resumed = painted.current !== 'none';
 
-    loadImage(src)
+    const clearCanvas = () => {
+      canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
+      painted.current = 'none';
+    };
+
+    loadSceneImage(scene)
       .then((img) => {
         if (run !== token.current) return;
-        canvas.width = Math.round(width * dpr);
-        canvas.height = Math.round(height * dpr);
+        if (reduce || !canvas || !frame) {
+          clearCanvas();
+          onRevealRef.current?.(scene);
+          setShown(scene);
+          return;
+        }
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const W = Math.round(frame.clientWidth * dpr);
+        const H = Math.round(frame.clientHeight * dpr);
+        // Resizing clears a canvas, so only do it when the frame actually changed size.
+        if (canvas.width !== W || canvas.height !== H) {
+          canvas.width = W;
+          canvas.height = H;
+          painted.current = 'none';
+        }
         const ctx = canvas.getContext('2d');
-        if (!ctx) return setShown(scene);
+        if (!ctx) {
+          onRevealRef.current?.(scene);
+          return setShown(scene);
+        }
         ctx.imageSmoothingEnabled = false;
 
         // object-fit: cover mapping from canvas space back into the source image.
-        const W = canvas.width;
-        const H = canvas.height;
         const s = Math.max(W / img.naturalWidth, H / img.naturalHeight);
         const ox = (W - img.naturalWidth * s) / 2;
         const oy = (H - img.naturalHeight * s) / 2;
         const c = Math.ceil(CELL * dpr);
         const cols = Math.ceil(W / c);
         const rows = Math.ceil(H / c);
-        const cells = cellOrder(cols, rows, transitionRef.current).map((i): [number, number] => [(i % cols) * c, Math.floor(i / cols) * c]);
+        const order = cellOrder(cols, rows, transitionRef.current);
+        const motion = transitionRef.current.kind === 'wipe' ? MOTION.wipe : MOTION.ripple;
+        const field = light.current;
 
         let drawn = 0;
-        const start = performance.now();
+        let revealed = false;
+        const start = performance.now() + (resumed ? 0 : motion.delay);
         const tick = (now: number) => {
           if (run !== token.current) return;
-          const t = Math.min(1, (now - start) / DURATION);
-          const eased = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
-          const target = Math.floor(eased * cells.length);
-          for (; drawn < target; drawn++) {
-            const [x, y] = cells[drawn];
-            ctx.drawImage(img, (x - ox) / s, (y - oy) / s, c / s, c / s, x, y, c, c);
+          const t = Math.min(1, Math.max(0, (now - start) / motion.duration));
+          const target = Math.floor(motion.ease(t) * order.length);
+          if (target > drawn && !revealed) {
+            revealed = true;
+            onRevealRef.current?.(scene);
+            field?.resize(frame.clientWidth, frame.clientHeight, accentOf(frame));
           }
-          if (t < 1) raf = requestAnimationFrame(tick);
-          else {
+          for (; drawn < target; drawn++) {
+            const i = order[drawn];
+            const x = (i % cols) * c;
+            const y = Math.floor(i / cols) * c;
+            ctx.drawImage(img, (x - ox) / s, (y - oy) / s, c / s, c / s, x, y, c, c);
+            // Arriving pixels catch the light, exactly on the dissolve's edge.
+            field?.spark(x / dpr, y / dpr, c / dpr, motion.glow * (1 - 0.4 * t));
+          }
+          if (drawn) painted.current = 'partial';
+          if (t < 1) {
+            raf = requestAnimationFrame(tick);
+            return;
+          }
+          handedOff = true;
+          if (scene.id === shown.id) {
+            // Came back to the scene already in the <img>: the canvas now matches it exactly.
+            clearCanvas();
+          } else {
+            painted.current = 'handoff';
             clearOnLoad.current = true;
             setShown(scene);
           }
         };
         raf = requestAnimationFrame(tick);
       })
-      .catch(() => run === token.current && setShown(scene));
+      // Keep the last painted scene on failure. A later navigation can retry the image.
+      .catch(() => undefined);
 
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      // Invalidate pending loads, including when returning to the shown scene. The canvas keeps
+      // what it has painted so far; the next dissolve continues over it instead of jumping back.
+      if (!handedOff) token.current = run + 1;
+    };
   }, [scene, shown.id, reduce]);
 
   return (
     <div ref={frameRef} className={cn('relative isolate overflow-hidden bg-[#2b3a3a]', className)}>
-      <div className="absolute inset-0 animate-drift will-change-transform" aria-hidden>
+      <div className="pointer-events-none absolute inset-0 animate-drift will-change-transform" aria-hidden>
         <img
           key={shown.id}
           src={sceneSrc(shown, 1920)}
           srcSet={sceneSrcSet(shown)}
-          sizes="(min-width: 1104px) 1104px, 100vw"
+          sizes={SCENE_SIZES}
           alt=""
           decoding="async"
           fetchPriority="high"
@@ -193,6 +284,7 @@ export function SceneStage({ scene, dim = false, transition = FROM_PROMPT, class
               if (run !== token.current) return;
               const canvas = canvasRef.current;
               canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
+              painted.current = 'none';
             };
             img
               .decode()
@@ -202,8 +294,9 @@ export function SceneStage({ scene, dim = false, transition = FROM_PROMPT, class
           className="absolute inset-0 size-full object-cover"
         />
         <canvas ref={canvasRef} className="absolute inset-0 size-full" />
+        {/* Inside the drift, so the light lines up with the dissolve it follows. */}
+        <canvas ref={lightRef} width={1} height={1} className="absolute top-0 left-0" />
       </div>
-      <canvas ref={veilRef} width={1} height={1} className="pointer-events-none absolute inset-0 size-full [image-rendering:pixelated]" aria-hidden />
       {children}
     </div>
   );
@@ -219,12 +312,29 @@ export function SceneCaption({ scene, position, onPrev, onNext, className }: { s
       <span className="label tabular ml-1 text-[11px] text-subtle">
         {String(position.index + 1).padStart(2, '0')}/{String(position.total).padStart(2, '0')}
       </span>
-      <button type="button" onClick={onPrev} aria-label="Previous scene" className="ml-1 grid size-6 place-items-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10">
+      <SceneArrow label="Previous scene" shortcut="←" keys="ArrowLeft" onClick={onPrev} className="ml-1">
         <CaretLeft size={12} />
-      </button>
-      <button type="button" onClick={onNext} aria-label="Next scene" className="grid size-6 place-items-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10">
+      </SceneArrow>
+      <SceneArrow label="Next scene" shortcut="→" keys="ArrowRight" onClick={onNext}>
         <CaretRight size={12} />
-      </button>
+      </SceneArrow>
     </div>
+  );
+}
+
+/** A caption arrow. Its tooltip names the keyboard shortcut, as Undo and Redo do. */
+function SceneArrow({ label, shortcut, keys, onClick, className, children }: { label: string; shortcut: string; keys: string; onClick: () => void; className?: string; children: ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button type="button" onClick={onClick} aria-label={label} aria-keyshortcuts={keys} className={cn('grid size-6 place-items-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10', className)}>
+          {children}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent>
+        {label}
+        <span className="ml-2 opacity-60">{shortcut}</span>
+      </TooltipContent>
+    </Tooltip>
   );
 }

@@ -58,4 +58,4 @@ export function sceneForDestination(destination: string): Scene | null {
  */
 export type SceneTransition = { kind: 'ripple'; x: number; y: number } | { kind: 'wipe'; from: 'left' | 'right' };
 /** A ripple from where the prompt card sits in the stage. */
-export const FROM_PROMPT: SceneTransition = { kind: 'ripple', x: 0.5, y: 0.74 };
+export const FROM_PROMPT = { kind: 'ripple', x: 0.5, y: 0.74 } as const satisfies SceneTransition;

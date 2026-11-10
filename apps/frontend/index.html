@@ -24,6 +24,27 @@
         if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
       } catch (e) {}
     </script>
+    <script>
+      // Discover this visit's hero image before the React bundle arrives. Keep these scene
+      // paths and responsive sizes in sync with features/scenes/scenes.ts and scene-images.ts.
+      (function () {
+        var visit = 0;
+        try {
+          var previous = Number.parseInt(localStorage.getItem('triptinker:scene-visit') ?? localStorage.getItem('roamfar:scene-visit') ?? '-1', 10);
+          if (Number.isFinite(previous) && previous >= -1) visit = ((previous % 10) + 1) % 10;
+        } catch (e) {}
+        document.documentElement.dataset.sceneVisit = String(visit);
+        var base = '/scenes/scene-' + (visit + 1);
+        var preload = document.createElement('link');
+        preload.rel = 'preload';
+        preload.as = 'image';
+        preload.imageSrcset = base + '-960.webp 960w, ' + base + '-1920.webp 1920w';
+        preload.imageSizes = '(min-width: 1104px) 1104px, 100vw';
+        preload.href = base + '-1920.webp';
+        preload.fetchPriority = 'high';
+        document.head.appendChild(preload);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

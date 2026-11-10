@@ -1,6 +1,6 @@
 import { ArrowUp, Minus, Plus, SlidersHorizontal, Stop } from '@phosphor-icons/react';
 import { useReducedMotion } from 'motion/react';
-import { useEffect, useId, useImperativeHandle, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
+import { useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
 import { LIMITS, PACES, type Pace } from '@triptinker/contracts';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RunningRing } from '@/components/ui/running-ring';
@@ -94,6 +94,16 @@ export function PromptCard({
   const localRef = useRef<HTMLTextAreaElement | null>(null);
   const id = useId();
   const ghost = useTypewriter(typed, !value && !focused && !reduce && !running && !listening);
+  const ghostRef = useRef<HTMLSpanElement>(null);
+
+  // The example can be longer than the box on a narrow phone. Scroll it like a real field would, so
+  // the line being typed stays in view and the text never spills onto the buttons below.
+  useLayoutEffect(() => {
+    const el = ghostRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+    el.toggleAttribute('data-clipped', el.scrollTop > 0);
+  }, [ghost]);
 
   useImperativeHandle(inputRef, () => localRef.current as HTMLTextAreaElement, []);
 
@@ -151,7 +161,11 @@ export function PromptCard({
             className="block max-h-48 w-full resize-none bg-transparent text-base leading-[22px] text-ink outline-none [field-sizing:content] placeholder:text-subtle focus-visible:outline-none"
           />
           {!value && !focused && !reduce && !listening && (
-            <span className="pointer-events-none absolute inset-0 text-base leading-[22px] text-ink" aria-hidden>
+            <span
+              ref={ghostRef}
+              className="pointer-events-none absolute inset-0 overflow-hidden text-base leading-[22px] text-ink data-clipped:[mask-image:linear-gradient(to_bottom,transparent,black_22px)]"
+              aria-hidden
+            >
               {ghost}
               <span className="ml-0.5 inline-block h-4 w-px animate-caret bg-ink align-middle" />
             </span>

@@ -527,7 +527,6 @@
 
 /* Scroll the pane rather than letting streamed content resize its neighbouring cards. */
 .pane-scroll {
-  overscroll-behavior: contain;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: var(--line-strong) transparent;

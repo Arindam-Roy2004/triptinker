@@ -4,6 +4,7 @@ import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalList
 import { CSS } from '@dnd-kit/utilities';
 import { CaretDown, DotsSixVertical } from '@phosphor-icons/react';
 import { AnimatePresence, motion } from 'motion/react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { Day, Stop } from '@triptinker/contracts';
 import { formatDuration, formatTime } from '@/lib/format';
 import { PixelFill } from '@/components/ui/pixel-fill';
@@ -47,7 +48,12 @@ function MarkTag({ mark }: { mark: ChangeMark | 'removed' }) {
 
 /** A day's stops as a list: select (or expand) a row, drag the handle to reorder. */
 export function StopList({ day, days, destination, selectedId, onSelect, inline, actionsFor, onReorder, marks, removed = [], locked, flash }: Props) {
-  const [listRef, moreBelow] = useMoreBelow<HTMLOListElement>();
+  const [observeList, moreBelow] = useMoreBelow<HTMLOListElement>();
+  const listRef = useRef<HTMLOListElement>(null);
+  const setListRef = useCallback((node: HTMLOListElement | null) => {
+    listRef.current = node;
+    observeList(node);
+  }, [observeList]);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const title = (id: unknown) => day.stops.find((s) => s.id === id)?.title ?? 'stop';
   const position = (id: unknown) => day.stops.findIndex((s) => s.id === id) + 1;
@@ -65,6 +71,17 @@ export function StopList({ day, days, destination, selectedId, onSelect, inline,
     if (from !== -1 && to !== -1) onReorder(from, to);
   };
 
+  useEffect(() => {
+    const list = listRef.current;
+    const row = list?.querySelector<HTMLElement>('[aria-current="true"]')?.closest('li');
+    if (!list || !row || list.scrollHeight <= list.clientHeight) return;
+    const bounds = list.getBoundingClientRect();
+    const selected = row.getBoundingClientRect();
+    const delta = selected.top < bounds.top ? selected.top - bounds.top : selected.bottom > bounds.bottom ? selected.bottom - bounds.bottom : 0;
+    // Scroll only this list; scrollIntoView would also move the surrounding page.
+    if (delta) list.scrollTo({ top: list.scrollTop + delta, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+  }, [selectedId, day.stops]);
+
   if (!day.stops.length && !removed.length) {
     return (
       <div className="bg-surface px-6 py-12 text-center">
@@ -78,10 +95,10 @@ export function StopList({ day, days, destination, selectedId, onSelect, inline,
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd} modifiers={[restrictToVerticalAxis, restrictToParentElement]} accessibility={{ announcements }}>
       <SortableContext items={day.stops.map((s) => s.id)} strategy={verticalListSortingStrategy}>
         <ol
-          ref={listRef}
+          ref={setListRef}
           aria-label={`Stops for ${day.title}`}
           data-more={moreBelow || undefined}
-          className="flex flex-col bg-surface lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:[scrollbar-width:thin] lg:data-more:[mask-image:linear-gradient(to_bottom,black_calc(100%-40px),transparent)]"
+          className="flex flex-col bg-surface lg:min-h-0 lg:overflow-y-auto lg:[scrollbar-width:thin] lg:data-more:[mask-image:linear-gradient(to_bottom,black_calc(100%-40px),transparent)]"
         >
           {day.stops.map((stop, index) => (
             <Row

@@ -152,16 +152,18 @@ function DayGlance({ day }: { day: Day }) {
   );
 }
 
-function IconButton({ label, shortcut, onClick, disabled, children }: { label: string; shortcut?: string; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
+function IconButton({ label, description, shortcut, onClick, disabled, children }: { label: string; description: string; shortcut?: string; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button size="icon" variant="secondary" onClick={onClick} disabled={disabled} aria-label={label}>
-          {children}
-        </Button>
+        <span className="inline-flex">
+          <Button size="sm" variant="secondary" onClick={onClick} disabled={disabled} aria-label={label}>
+            {children} {label}
+          </Button>
+        </span>
       </TooltipTrigger>
       <TooltipContent>
-        {label}
+        {description}
         {shortcut && <span className="ml-2 opacity-60">{shortcut}</span>}
       </TooltipContent>
     </Tooltip>
@@ -243,6 +245,20 @@ export function ResultSection(props: Props) {
   const currentStop = current >= 0 ? day.stops[current] : null;
   const stats = tripStats(trip);
 
+  // A stop may be shown by the desktop fallback before the user explicitly selects it.
+  // Pin its identity before moving it, so repeated arrows keep moving that same stop.
+  const actionsFor = (stop: Stop, index: number): StopActions => {
+    const actions = props.actionsFor(day.id, stop, index);
+    return {
+      ...actions,
+      onMove: (to) => {
+        setSelected(stop.id);
+        setAnchor(to);
+        actions.onMove(to);
+      },
+    };
+  };
+
   useEffect(() => {
     dayStrip.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView({
       block: 'nearest',
@@ -284,11 +300,11 @@ export function ResultSection(props: Props) {
             </Reveal>
           )}
         </div>
-        <Reveal as="div" index={3} className="flex w-full items-center gap-2 lg:w-auto">
-          <IconButton label="Undo" shortcut="⌘Z" onClick={props.onUndo} disabled={locked || !props.canUndo}>
+        <Reveal as="div" index={3} className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
+          <IconButton label="Undo" description={props.canUndo ? 'Undo last change' : 'No changes to undo'} shortcut="⌘Z" onClick={props.onUndo} disabled={locked || !props.canUndo}>
             <ArrowCounterClockwise />
           </IconButton>
-          <IconButton label="Redo" shortcut="⇧⌘Z" onClick={props.onRedo} disabled={locked || !props.canRedo}>
+          <IconButton label="Redo" description={props.canRedo ? 'Redo last undone change' : 'No changes to redo'} shortcut="⇧⌘Z" onClick={props.onRedo} disabled={locked || !props.canRedo}>
             <ArrowClockwise />
           </IconButton>
           <DownloadMenu onExport={props.onExport} />
@@ -410,8 +426,12 @@ export function ResultSection(props: Props) {
                 );
               }}
               inline={!desktop}
-              actionsFor={(stop, index) => props.actionsFor(day.id, stop, index)}
-              onReorder={(from, to) => props.onReorder(day.id, from, to)}
+              actionsFor={actionsFor}
+              onReorder={(from, to) => {
+                if (currentStop) setSelected(currentStop.id);
+                if (from === current) setAnchor(to);
+                props.onReorder(day.id, from, to);
+              }}
               marks={marked?.byStop}
               flash={!review && !!highlight}
               removed={review?.removedByDay.get(dayIndex)}
@@ -441,7 +461,7 @@ export function ResultSection(props: Props) {
                       dayId={day.id}
                       days={itinerary.days}
                       destination={itinerary.destination}
-                      {...props.actionsFor(day.id, currentStop, current)}
+                      {...actionsFor(currentStop, current)}
                     />
                   </WindowFrame>
                 </motion.div>

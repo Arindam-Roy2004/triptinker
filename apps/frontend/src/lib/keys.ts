@@ -1,4 +1,4 @@
-/** Every localStorage key the app owns, in one place. index.html repeats `theme` for its pre-paint script. */
+/** Every localStorage key the app owns, in one place. index.html repeats `theme` and `sceneVisit` before React loads. */
 export const STORAGE_KEYS = {
   theme: 'triptinker:theme',
   workspace: 'triptinker:workspace:v2',
