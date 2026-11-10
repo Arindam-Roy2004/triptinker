@@ -62,6 +62,148 @@ test('sample trip: inspect, remove with undo, reorder, save and reload', async (
   await expect(page.getByRole('list', { name: 'Stops for Alfama and the river' }).locator(':scope > li').first()).toContainText('Miradouro da Senhora do Monte');
 });
 
+test('repeated stop arrows move the same attraction through the day, with undo and redo', async ({ page, isMobile }) => {
+  await page.getByRole('button', { name: 'View sample' }).click();
+  const list = page.getByRole('list', { name: 'Stops for Alfama and the river' });
+  const rows = list.locator(':scope > li');
+  const title = 'Tram 28 from Martim Moniz';
+  const undo = page.locator('#trip').getByRole('button', { name: 'Undo', exact: true });
+  const redo = page.locator('#trip').getByRole('button', { name: 'Redo', exact: true });
+  await expect(undo).toBeDisabled();
+  await expect(redo).toBeDisabled();
+  // Desktop starts with an implicit selection. Do not click a row before using its arrows.
+  if (isMobile) await openStop(page, title);
+  const times = await rows.locator(':scope > div > button > span:first-child > span:first-child').allTextContents();
+  for (let index = 1; index < 7; index++) {
+    await page.getByRole('button', { name: 'Move later', exact: true }).filter({ visible: true }).click();
+    await expect(rows.nth(index)).toContainText(title);
+    await expect(rows.locator(':scope > div > button > span:first-child > span:first-child')).toHaveText(times);
+    if (!isMobile) await expect(page.getByRole('region', { name: 'Stop details', exact: true }).getByRole('heading')).toHaveText(title);
+  }
+  await expect(page.getByRole('button', { name: 'Move later', exact: true }).filter({ visible: true })).toBeDisabled();
+  if (!isMobile) {
+    await expect.poll(() => list.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+    await expect(list.locator('[aria-current="true"]')).toBeInViewport();
+  }
+  await undo.click();
+  await expect(rows.nth(5)).toContainText(title);
+  await redo.click();
+  await expect(rows.nth(6)).toContainText(title);
+  for (let index = 5; index >= 0; index--) {
+    await page.getByRole('button', { name: 'Move earlier', exact: true }).filter({ visible: true }).click();
+    await expect(rows.nth(index)).toContainText(title);
+  }
+  await expect(page.getByRole('button', { name: 'Move earlier', exact: true }).filter({ visible: true })).toBeDisabled();
+});
+
+test('wheel scrolling continues into the page at the edges of the stop list and details', async ({ page, isMobile }) => {
+  test.skip(!!isMobile, 'mouse wheel scrolling is desktop-only');
+  await page.getByRole('button', { name: 'View sample' }).click();
+  const list = page.getByRole('list', { name: 'Stops for Alfama and the river' });
+  await list.scrollIntoViewIfNeeded();
+  await list.evaluate((el) => { el.scrollTop = el.scrollHeight; });
+  await list.hover();
+  let before = await page.evaluate(() => window.scrollY);
+  await page.mouse.wheel(0, 240);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(before);
+  const detail = page.getByRole('region', { name: 'Stop details', exact: true });
+  await detail.scrollIntoViewIfNeeded();
+  await detail.getByRole('heading').hover();
+  before = await page.evaluate(() => window.scrollY);
+  await page.mouse.wheel(0, 240);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(before);
+});
+
+test('hero preload matches React and neighboring scenes are loaded before navigation', async ({ page }) => {
+  const hero = page.locator('#scene img').first();
+  await expect.poll(() => hero.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
+  const visit = await page.evaluate(() => Number(document.documentElement.dataset.sceneVisit));
+  await expect(hero).toHaveAttribute('src', `/scenes/scene-${visit + 1}-1920.webp`);
+  expect(await page.evaluate(() => localStorage.getItem('triptinker:scene-visit'))).toBe(String(visit));
+  const preload = page.locator('link[rel="preload"][as="image"]');
+  await expect(preload).toHaveAttribute('imagesrcset', (await hero.getAttribute('srcset'))!);
+  await expect(preload).toHaveAttribute('imagesizes', (await hero.getAttribute('sizes'))!);
+  const nextId = (visit + 1) % 10 + 1;
+  const requestsForNext = () => page.evaluate((id) => performance.getEntriesByType('resource').filter((entry) => entry.name.includes(`/scenes/scene-${id}-`)).length, nextId);
+  await expect.poll(requestsForNext).toBe(1);
+  await page.getByRole('button', { name: 'Next scene', exact: true }).click();
+  await expect(hero).toHaveAttribute('src', `/scenes/scene-${nextId}-1920.webp`);
+  expect(await requestsForNext()).toBe(1);
+  await page.reload();
+  await expect(hero).toHaveAttribute('src', `/scenes/scene-${nextId}-1920.webp`);
+  expect(await page.evaluate(() => localStorage.getItem('triptinker:scene-visit'))).toBe(String((visit + 1) % 10));
+});
+
+test('reduced motion switches decoded scenes without a canvas dissolve', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.reload();
+  const hero = page.locator('#scene img').first();
+  const visit = await page.evaluate(() => Number(document.documentElement.dataset.sceneVisit));
+  const canvas = page.locator('#scene canvas').first();
+  const initialWidth = await canvas.evaluate((el: HTMLCanvasElement) => el.width);
+  await page.getByRole('button', { name: 'Next scene', exact: true }).click();
+  await expect(hero).toHaveAttribute('src', `/scenes/scene-${(visit + 1) % 10 + 1}-1920.webp`);
+  await expect.poll(() => hero.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
+  expect(await canvas.evaluate((el: HTMLCanvasElement) => el.width)).toBe(initialWidth);
+});
+
+test('arrow keys browse the scenes, except while typing or using other arrow-key controls', async ({ page }) => {
+  const caption = page.locator('#scene p[aria-live="polite"]');
+  await page.locator('#scene').scrollIntoViewIfNeeded();
+  await expect(caption).toContainText('Yosemite Valley');
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.press('ArrowRight');
+  await expect(caption).toContainText('Eiffel Tower');
+  await page.keyboard.press('ArrowLeft');
+  await expect(caption).toContainText('Yosemite Valley');
+  await expect(page.getByRole('button', { name: 'Next scene', exact: true })).toHaveAttribute('aria-keyshortcuts', 'ArrowRight');
+
+  // Typing: the arrow moves the caret, not the scene.
+  await page.getByLabel('Describe your trip').fill('Lisbon');
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(1500);
+  await expect(caption).toContainText('Yosemite Valley');
+
+  // The day tabs own ← and → for switching days, even with the scene in view.
+  await page.getByRole('button', { name: 'View sample' }).click();
+  await expect(tripTitle(page)).toBeVisible();
+  await page.waitForTimeout(800); // let the smooth scroll to the trip finish
+  await page.locator('#scene').scrollIntoViewIfNeeded();
+  const firstDay = page.getByRole('tablist', { name: 'Days' }).getByRole('tab').first();
+  await firstDay.evaluate((tab: HTMLElement) => tab.focus({ preventScroll: true }));
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(1500);
+  await expect(caption).toContainText('Yosemite Valley');
+  // …and from the page itself, at the same scroll position, the keys still browse.
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.press('ArrowRight');
+  await expect(caption).toContainText('Eiffel Tower');
+});
+
+test('a slow scene response cannot override a newer navigation back to the painted scene', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('triptinker:scene-visit', '-1'));
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  await page.route('**/scenes/scene-2-*.webp', async (route) => {
+    await held;
+    await route.continue();
+  });
+  await page.reload();
+  const hero = page.locator('#scene img').first();
+  await expect.poll(() => hero.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
+  await page.getByRole('button', { name: 'Next scene', exact: true }).click();
+  // The caption follows the picture, so it cannot name a scene whose image has not arrived.
+  await page.waitForTimeout(300);
+  await expect(page.locator('#scene p[aria-live="polite"]')).toContainText('Yosemite Valley');
+  await page.getByRole('button', { name: 'Previous scene', exact: true }).click();
+  const response = page.waitForResponse(/\/scenes\/scene-2-/);
+  release();
+  await response;
+  await page.waitForTimeout(1300); // Let the obsolete load's delayed dissolve finish if cancellation is broken.
+  await expect(hero).toHaveAttribute('src', '/scenes/scene-1-1920.webp');
+  await expect(page.locator('#scene p[aria-live="polite"]')).toContainText('Yosemite Valley');
+});
+
 test('previews the plan as it streams, then renders only the validated plan', async ({ page }) => {
   test.setTimeout(90_000);
   await useLab(page, /Slow model/);
@@ -256,9 +398,16 @@ test('removing stops keeps the selection in place, one toast, and an empty day o
   await expect(page.getByLabel('Describe a change to the plan')).toBeFocused();
 });
 
-test('layout never scrolls horizontally', async ({ page }) => {
+test('layout never scrolls horizontally', async ({ page, isMobile }, testInfo) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.getByRole('button', { name: 'View sample' }).click();
   await expect(tripTitle(page)).toBeVisible();
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-  expect(overflow).toBeLessThanOrEqual(0);
+  const overflow = () => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(await overflow()).toBeLessThanOrEqual(0);
+  if (isMobile) {
+    await page.setViewportSize({ width: 320, height: 700 });
+    await expect.poll(overflow).toBeLessThanOrEqual(0);
+  }
+  await page.locator('#trip').screenshot({ path: testInfo.outputPath('trip.png') });
+  await page.locator('#trip > div').first().screenshot({ path: testInfo.outputPath('trip-header.png') });
 });

@@ -57,6 +57,8 @@ This is the part I cared about most, so here is what actually happens.
 
 **One contract for both sides.** The request and response shapes live in `packages/contracts` as zod schemas. The browser validates input before sending, the server validates it again, and the server validates what the model sends back. Nothing reaches the UI without passing a schema.
 
+The contracts bound text by Unicode character count, require integer counts and durations within explicit ranges, reject unknown fields in app-owned objects, and check nested IDs for uniqueness. A trip can contain at most 100 stops across 10 days; moving existing stops into one day and deleting every stop from a day remain valid. Source links must use HTTPS without credentials and match their displayed domain. Stream metadata, error details, transcripts and saved trips have limits too, including consistent repair attempts and timestamps. The limits live in `packages/contracts/src/limits.ts`; search relevance scores remain fractional values between 0 and 1.
+
 **The pipeline** (`apps/backend/src/pipeline.ts`, `normalize.ts`):
 
 1. The model streams text. The server pulls the JSON out (it copes with code fences and chatter around it) and normalises it.
@@ -91,8 +93,8 @@ tests/e2e        Playwright, desktop and mobile
 
 ## Tests
 
-- 141 unit and API tests cover the contracts, the JSON extraction and salvage logic, the repair pipeline, search, speech and the HTTP layer, including the failure cases above.
-- 13 browser tests run on a desktop and a phone-sized viewport: sample editing and persistence, the failure scenarios, stop and retry, refinement review, and saved trips.
+- 209 unit and API tests cover the contracts and their boundaries, saved-trip validation and clean-up of older saved trips, scene image loading, JSON extraction and salvage, the repair pipeline, search, speech and the HTTP layer, including the failure cases above.
+- 19 browser tests run on a desktop and a phone-sized viewport (two are desktop-only): sample editing and persistence, moving stops with undo and redo, scene preloading, transitions and arrow-key browsing, the failure scenarios, stop and retry, refinement review, and saved trips.
 
 ## AI usage
 
