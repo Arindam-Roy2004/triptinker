@@ -127,7 +127,7 @@ function Compose({ value, onChange, onSubmit, error, onClearError, disabled, inp
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           placeholder="Ask for a change to this plan…"
-          className="block max-h-32 min-h-9 flex-1 resize-none bg-transparent py-[7px] text-[15px] leading-[22px] text-ink outline-none [field-sizing:content] placeholder:text-subtle focus-visible:outline-none"
+          className="block max-h-32 min-h-9 min-w-0 flex-1 resize-none bg-transparent py-[7px] text-base leading-[22px] text-ink outline-none [field-sizing:content] placeholder:truncate placeholder:text-subtle focus-visible:outline-none sm:text-[15px]"
         />
         {voice && (
           <MicButton
