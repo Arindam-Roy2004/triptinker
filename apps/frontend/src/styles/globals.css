@@ -4,7 +4,10 @@
 /*
  * TripTinker design tokens.
  * Neutrals follow autosend's stone scale; one brand accent (juniper) for actions and state,
- * and terracotta reserved for the prompt card — the one thing we want the eye to land on.
+ * and a signal colour reserved for the prompt card — the one thing we want the eye to land on.
+ * The signal is the orange of Mainline's numbered badges. Work in progress runs in dusty blue
+ * (#8DA9C4): a muted, grey-cast blue that design guides pair with warm accents and neutrals,
+ * echoing the skies and water of the scenes, and nothing like the saturated stock "AI blue".
  */
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -46,8 +49,13 @@
   --color-brand-ring: var(--brand-ring);
   --color-brand-ink: var(--brand-ink);
   --color-brand-wash: var(--brand-wash);
-  --color-clay: var(--clay);
-  --color-clay-ring: var(--clay-ring);
+  --color-signal: var(--signal);
+  --color-signal-ring: var(--signal-ring);
+  /* Icons and text in the signal colour on a light surface (5:1); ink for text on a signal fill (7:1). */
+  --color-signal-text: var(--signal-text);
+  --color-signal-ink: var(--signal-ink);
+  /* Work in progress: the running dashes and the light of a scene change. */
+  --color-running: var(--running);
   --color-ok: var(--ok);
   --color-ok-wash: var(--ok-wash);
   --color-warn: var(--warn);
@@ -67,10 +75,42 @@
   --radius-xl: 12px;
   --radius-2xl: 16px;
 
-  /* Vibrant's card outline: a 1px ring and two compact drops. */
+  /*
+   * Edge weights, lightest to heaviest (Aceternity's line system). Each role has its own weight:
+   *   guide      page rails and the full-bleed lines that frame sections
+   *   edge       card outlines and the dividers inside them (one hairline, so a card reads as one grid)
+   *   separator  standalone rules: menu separators, timelines, connector lines
+   *   control    things you type in or press: inputs, outlined chips, toggle thumbs
+   *   strong     dashed placeholders and empty markers
+   *   hover      any edge under the pointer
+   */
+  --color-guide: var(--edge-guide);
+  --color-edge: var(--edge);
+  --color-edge-separator: var(--edge-separator);
+  --color-edge-control: var(--edge-control);
+  --color-edge-strong: var(--edge-strong);
+  --color-edge-hover: var(--edge-hover);
+
+  /* Cards: a ring, never a border, so the outline costs no layout; plus two compact drops. */
   --shadow-lift: var(--lift);
   --shadow-window: var(--lift);
-  --shadow-float: 0 0 0 1px var(--line), 0 12px 32px -12px rgb(28 25 23 / 0.28);
+  /*
+   * Pressable chips: a lighter ring with a soft drop, so they sit just above the surface.
+   * Inputs and toggle thumbs: the control ring with the same drop. Both rings are inset, so a
+   * chip in a scroll row or a thumb in a clipped track never loses its top or bottom edge.
+   */
+  --shadow-chip: inset 0 0 0 1px var(--edge-chip), 0 1px 2px 0 var(--edge-drop);
+  --shadow-control: inset 0 0 0 1px var(--edge-control), 0 1px 2px 0 var(--edge-drop);
+  /* A card nested inside a clipped panel: the card ring, inset, with no drop. */
+  --shadow-inset: inset 0 0 0 1px var(--edge-card);
+  --shadow-float: 0 0 0 1px var(--edge-control), 0 12px 32px -12px rgb(28 25 23 / 0.28);
+  /* Mainline's showcase windows: five layers, from a hairline ring to a long soft fall. For a
+     surface that floats over imagery or a recessed tray: the prompt, the stop window, the live plan. */
+  --shadow-elevated: var(--elevated);
+  /* Mainline's keycaps: a half-pixel drop and a half-pixel highlight along the top. */
+  --shadow-keycap: var(--keycap);
+  /* Mainline's recessed tray: a 14px glow inside, so what sits in it reads as set down into the page. */
+  --shadow-recess: inset 0 0 14px 0 var(--recess);
 
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
 
@@ -124,8 +164,11 @@
   --brand-ring: #0a5550;
   --brand-ink: #fafaf9;
   --brand-wash: #e7f0ee;
-  --clay: #d97757;
-  --clay-ring: #c4623f;
+  --signal: lab(64.272% 57.1788 90.3583);
+  --signal-ring: lab(57.1026% 64.2584 89.8886);
+  --signal-text: lab(57.1026% 64.2584 89.8886);
+  --signal-ink: #fff;
+  --running: #8da9c4;
 
   --ok: #2f7d4f;
   --ok-wash: #e8f2eb;
@@ -146,12 +189,22 @@
   --glow: linear-gradient(120deg, #b3e5fc 0%, #e0f2f1 50%, #f0f0f0 100%);
   /* the light band that sweeps across brand eyebrows */
   --shimmer-light: #7fd0c4;
-  --lift: 0 0 0 1px rgb(0 0 0 / 0.05), 0 1px 3px rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+  --lift: 0 0 0 1px var(--edge-card), 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --elevated: 0 24px 40px -20px rgb(38 38 43 / 0.3), 0 10px 24px 0 rgb(38 38 43 / 0.06), 0 1px 1px 0 rgb(38 38 43 / 0.16), 0 0 0 1px rgb(38 38 43 / 0.05), 0 8px 14px -10px rgb(38 38 43 / 0.4);
+  --keycap: 0 0.5px 0.5px 0 rgb(0 0 0 / 0.1), inset 0 0.5px 0 0 #fff;
+  --recess: #e7e5e4;
+  /* Dotted frame: neutral-400 there, its warm twin here. */
+  --dot: #a8a29e;
+  --edge-guide: rgb(0 0 0 / 0.06);
+  --edge-card: rgb(0 0 0 / 0.1);
   --edge: rgb(0 0 0 / 0.08);
-  --edge-strong: rgb(0 0 0 / 0.1);
+  --edge-chip: rgb(0 0 0 / 0.05);
+  --edge-separator: rgb(0 0 0 / 0.09);
+  --edge-control: rgb(0 0 0 / 0.1);
+  --edge-strong: rgb(0 0 0 / 0.15);
   --edge-hover: rgb(0 0 0 / 0.2);
+  --edge-drop: rgb(0 0 0 / 0.05);
   --control-shadow: 0 0 0 1px #00000017, 0 1px 1px #00000008, 0 2px 4px #0000000a;
-  --chip-shadow: 0 2px 6px rgb(0 0 0 / 0.1), 0 0 0 1px rgb(0 0 0 / 0.04);
   --control-edge-bottom: #0000000f;
   --control-hover-mix: black 4%;
 
@@ -173,8 +226,11 @@
   --brand-ring: #2e978d;
   --brand-ink: #0c0a09;
   --brand-wash: #10302d;
-  --clay: #e08a6d;
-  --clay-ring: #c9714f;
+  --signal: lab(64.272% 57.1788 90.3583);
+  --signal-ring: lab(57.1026% 64.2584 89.8886);
+  --signal-text: lab(70.0429% 42.5156 75.8207);
+  --signal-ink: #fff;
+  --running: #a7bfd6;
 
   --ok: #6fc28f;
   --ok-wash: #11291b;
@@ -193,12 +249,21 @@
   /* The scene supplies colour against the existing near-black page in dark mode. */
   --glow: none;
   --shimmer-light: #ffffff;
-  --lift: 0 0 0 1px rgb(255 255 255 / 0.1), 0 1px 3px rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
-  --edge: rgb(255 255 255 / 0.1);
-  --edge-strong: rgb(255 255 255 / 0.15);
-  --edge-hover: rgb(255 255 255 / 0.2);
+  --lift: 0 0 0 1px var(--edge-card), 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+  --elevated: 0 24px 40px -20px rgb(0 0 0 / 0.7), 0 10px 24px 0 rgb(0 0 0 / 0.25), 0 1px 1px 0 rgb(0 0 0 / 0.4), 0 0 0 1px rgb(255 255 255 / 0.1), 0 8px 14px -10px rgb(0 0 0 / 0.6);
+  --keycap: 0 0.5px 0.5px 0 rgb(0 0 0 / 0.5), inset 0 0.5px 0 0 rgb(255 255 255 / 0.1);
+  --recess: rgb(0 0 0 / 0.55);
+  --dot: #52525b;
+  --edge-guide: rgb(255 255 255 / 0.07);
+  --edge-card: rgb(255 255 255 / 0.1);
+  --edge: rgb(255 255 255 / 0.08);
+  --edge-chip: rgb(255 255 255 / 0.08);
+  --edge-separator: rgb(255 255 255 / 0.1);
+  --edge-control: rgb(255 255 255 / 0.12);
+  --edge-strong: rgb(255 255 255 / 0.16);
+  --edge-hover: rgb(255 255 255 / 0.24);
+  --edge-drop: rgb(0 0 0 / 0.3);
   --control-shadow: 0 0 0 1px var(--edge), 0 1px 1px #0003, 0 2px 4px #00000040;
-  --chip-shadow: 0 2px 6px rgb(0 0 0 / 0.1), 0 0 0 1px var(--edge);
   --control-edge-bottom: #0003;
   --control-hover-mix: white 6%;
 
@@ -324,6 +389,31 @@
   .mask-fade-x {
     mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent);
   }
+  /* Mainline's dotted frame: 2px dots every 8px along a 4px strip. */
+  .dots-y {
+    background-image: radial-gradient(circle at 2px 4px, var(--dot) 1px, transparent 1.25px);
+    background-size: 4px 8px;
+    background-repeat: repeat-y;
+  }
+  .dots-x {
+    background-image: radial-gradient(circle at 4px 2px, var(--dot) 1px, transparent 1.25px);
+    background-size: 8px 4px;
+    background-repeat: repeat-x;
+    mask-image: linear-gradient(to right, transparent, #000 2%, #000 98%, transparent);
+  }
+  /* Mainline's glass for anything set over a picture: a white hairline, a fainter ring outside it,
+     a long soft drop and a strong blur. The fill stays frosted so text holds up on busy pixel art. */
+  .glass-card {
+    background: color-mix(in oklab, var(--surface) 70%, transparent);
+    border: 1px solid rgb(255 255 255 / 0.35);
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.15), 0 8px 32px rgb(0 0 0 / 0.18);
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+  }
+  .dark .glass-card {
+    border-color: rgb(255 255 255 / 0.12);
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.05), 0 8px 32px rgb(0 0 0 / 0.4);
+  }
   /* Fine crosshatch for recessed "workbench" cells that windows float on (Aceternity studio). */
   .crosshatch {
     background-color: var(--sunken);
@@ -343,7 +433,7 @@
  * Vibrant's button surface (vibrant.design, .t-surface), ported as-is: the surface lives on a
  * ::before so a press can scale it without moving the label. Each variant only sets colours:
  * a top-to-bottom body, a light-to-dark 1px edge, a ring, a soft inner shade and two drops.
- * Colours are TripTinker's (teal brand, clay accent, warm neutrals); the recipe is Vibrant's.
+ * Colours are TripTinker's (teal brand, ochre signal, warm neutrals); the recipe is Vibrant's.
  */
 @property --surface-top {
   syntax: '<color>';
@@ -434,23 +524,23 @@
   --surface-glow: #3fb5aa33;
 }
 
-/* Clay: the send button on the trip prompt */
-.t-surface-clay::before {
-  --surface-base: #dc7f61;
-  --surface-lit: #d06a4b;
-  --surface-sheen: linear-gradient(#ffffff24, #fff0 50%);
-  --surface-edge-top: #eba58e;
-  --surface-edge-bottom: #b85638;
-  --surface-ring: #b0502f;
-  --surface-shade: #6b240f2e;
-  --surface-drop-near: #b0502f1f;
-  --surface-drop: #b0502f29;
-  --surface-hover-tint: white 6%;
+/*
+ * Signal: the send button on the trip prompt, built exactly like Mainline's numbered badges:
+ * orange-400 to orange-600 top to bottom, a 2px orange-500 ring and a 3px white/20 ring inside,
+ * and shadow-lg at 10% black. White glyph.
+ */
+.signal-fill {
+  color: #fff;
+  background-image: linear-gradient(lab(70.0429% 42.5156 75.8207), lab(57.1026% 64.2584 89.8886));
+  box-shadow:
+    inset 0 0 0 2px lab(64.272% 57.1788 90.3583),
+    inset 0 0 0 3px rgb(255 255 255 / 0.2),
+    0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
+  transition: filter 0.15s ease, scale 0.15s ease;
 }
-.dark .t-surface-clay::before {
-  --surface-ring: #5e2614;
-  --surface-drop-near: #0003;
-  --surface-drop: #0006;
+@media (hover: hover) {
+  .signal-fill:not(:disabled):hover { filter: brightness(1.06); }
 }
 
 /* Outline: a white button with a hairline ring */
@@ -459,9 +549,9 @@
   --surface-lit: #f7f7f6;
   --surface-edge-top: #fff0;
   --surface-edge-bottom: #0000000f;
-  --surface-ring: #00000017;
-  --surface-drop-near: #00000008;
-  --surface-drop: #0000000a;
+  --surface-ring: #0000001a;
+  --surface-drop-near: #0000000d;
+  --surface-drop: #00000014;
 }
 .dark .t-surface-outline::before {
   --surface-base: #1f1d1b;

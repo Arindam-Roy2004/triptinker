@@ -40,7 +40,7 @@ export function SiteHeader({ children }: { children: ReactNode }) {
           // At rest the bar is as wide as the page content, so the logo and tools sit on its edges.
           'mx-auto flex h-16 items-center justify-between gap-4 border transition-[background-color,border-color,box-shadow,padding] duration-300',
           scrolled
-            ? 'border-line bg-surface/82 px-3 shadow-[0_10px_30px_-14px_rgb(28_25_23/0.28)] backdrop-blur-md sm:px-4'
+            ? 'border-[rgb(229_229_229/0.5)] bg-surface/90 px-3 shadow-lg shadow-black/10 backdrop-blur-xl sm:px-4 dark:border-[rgb(64_64_64/0.5)] dark:shadow-black/30'
             : 'border-transparent bg-transparent px-[3px] sm:px-[11px]',
         )}
       >

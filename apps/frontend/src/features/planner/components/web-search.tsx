@@ -51,7 +51,7 @@ function SourceChips({ sources }: { sources: WebSource[] }) {
           <TooltipTrigger asChild>
             <motion.a href={source.url} target="_blank" rel="noopener noreferrer" aria-label={`${source.title} — ${source.domain}`}
               initial={reduce ? false : { opacity: 0, y: 3 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, delay: Math.min(i, 4) * 0.035 }}
-              className="inline-flex min-h-7 max-w-full items-center gap-1.5 rounded-md border border-line bg-surface px-2 py-1 text-[11px] leading-4 text-muted shadow-[0_1px_1px_rgb(0_0_0/0.025)] transition-colors hover:border-line-strong hover:bg-sunken hover:text-ink focus-visible:outline-2 focus-visible:outline-brand">
+              className="inline-flex min-h-7 max-w-full items-center gap-1.5 rounded-md bg-surface px-2 py-1 text-[11px] leading-4 text-muted shadow-chip transition-[color,background-color,box-shadow] hover:bg-sunken hover:shadow-control hover:text-ink focus-visible:outline-2 focus-visible:outline-brand">
               <SiteMark domain={source.domain} className="size-4 rounded-[3px] border-0 shadow-none" />
               <span className="max-w-40 truncate">{SITE_NAMES[source.domain.replace(/^www\./, '')] ?? source.domain.replace(/^www\./, '')}</span>
             </motion.a>
@@ -62,7 +62,7 @@ function SourceChips({ sources }: { sources: WebSource[] }) {
           </TooltipContent>
         </Tooltip>
       ))}
-      {sources.length > 4 && <button type="button" aria-expanded={expanded} aria-controls={id} onClick={() => setExpanded(!expanded)} className="min-h-7 rounded-md border border-line px-2 py-1 text-[11px] leading-4 text-subtle transition-colors hover:bg-sunken hover:text-ink focus-visible:outline-2 focus-visible:outline-brand">{expanded ? 'Show less' : `+${sources.length - 4} more`}</button>}
+      {sources.length > 4 && <button type="button" aria-expanded={expanded} aria-controls={id} onClick={() => setExpanded(!expanded)} className="min-h-7 rounded-md border border-dashed border-edge-strong px-2 py-1 text-[11px] leading-4 text-subtle transition-colors hover:bg-sunken hover:text-ink focus-visible:outline-2 focus-visible:outline-brand">{expanded ? 'Show less' : `+${sources.length - 4} more`}</button>}
     </div>
   );
 }
@@ -114,7 +114,7 @@ export function SourceStack({ sources, label = 'Sources' }: { sources: WebSource
           </button>
         </PopoverTrigger>
       </div>
-      <PopoverContent align="start" sideOffset={10} className="w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-line bg-surface p-1.5 text-ink">
+      <PopoverContent align="start" sideOffset={10} className="w-[min(22rem,calc(100vw-2rem))] rounded-xl bg-surface p-1.5 text-ink">
         <p className="px-2.5 pt-2 pb-2.5 text-[12px] font-medium text-muted">{sources.length} sources for this trip</p>
         <ul className="flex max-h-72 flex-col overflow-y-auto overscroll-contain">
           {sources.map((source) => (
@@ -155,7 +155,7 @@ export function WebSearch({ query, sources, searching, elapsed }: { query: strin
       </div>
       <div className="ml-2">
         <div className="relative py-1 pr-0 pl-5">
-          <span aria-hidden className="absolute -top-2.5 -left-px h-6 w-3 rounded-bl-lg border-b border-l border-line" />
+          <span aria-hidden className="absolute -top-2.5 -left-px h-6 w-3 rounded-bl-lg border-b border-l border-edge-separator" />
           <div className="flex min-w-0 items-start gap-2">
             <GlobeSimple size={14} className="mt-1 shrink-0 text-subtle" aria-hidden />
             <div className="min-w-0 flex-1">
@@ -168,7 +168,7 @@ export function WebSearch({ query, sources, searching, elapsed }: { query: strin
             {!!found.length && (
               <motion.div key="sources" {...reveal} className="overflow-hidden">
                 <div className="relative ml-1.5 pt-1 pb-0.5 pl-4">
-                  <span aria-hidden className="absolute top-0 left-0 h-5 w-2.5 rounded-bl-lg border-b border-l border-line" />
+                  <span aria-hidden className="absolute top-0 left-0 h-5 w-2.5 rounded-bl-lg border-b border-l border-edge-separator" />
                   <SourceChips sources={found} />
                 </div>
               </motion.div>

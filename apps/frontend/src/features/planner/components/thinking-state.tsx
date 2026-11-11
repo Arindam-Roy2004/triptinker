@@ -1,6 +1,8 @@
 import { CaretDown } from '@phosphor-icons/react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useId, useState, type ReactNode } from 'react';
+import { AnimateIcon } from '@animate-ui/react/icons';
+import { Cancel01 } from '@/components/animate-ui/icons/hugeicons/cancel-01';
 import { Shimmer } from '@/components/ai/shimmer';
 import { cn } from '@/lib/utils';
 
@@ -67,7 +69,12 @@ export function ThinkingState({ label, detail, detailKey, elapsed, onStop, child
             </AnimatePresence>
           </p>
         </div>
-        <button type="button" onClick={onStop} className="mt-0.5 min-h-8 shrink-0 rounded-md px-2 text-[12px] text-muted transition-colors hover:bg-sunken hover:text-ink focus-visible:outline-2 focus-visible:outline-brand">Stop</button>
+        <AnimateIcon animateOnHover asChild>
+          <button type="button" onClick={onStop} className="mt-0.5 inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-[12px] text-muted transition-colors hover:bg-sunken hover:text-ink focus-visible:outline-2 focus-visible:outline-brand">
+            <Cancel01 size={12} aria-hidden />
+            Stop
+          </button>
+        </AnimateIcon>
       </div>
       <AnimatePresence initial={false}>
         {open && (

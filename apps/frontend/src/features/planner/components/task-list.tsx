@@ -12,7 +12,7 @@ export function TaskList({ tasks }: { tasks: PlanningTask[] }) {
   const id = useId();
   const completed = tasks.filter((task) => task.status === 'done').length;
   return (
-    <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-[0_1px_2px_rgb(0_0_0/0.025)]">
+    <div className="overflow-hidden rounded-xl bg-surface shadow-inset">
       <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls={id} aria-label={open ? 'Hide trip tasks' : 'Show trip tasks'} className="flex min-h-12 w-full items-center gap-2.5 px-4 text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand">
         <CircleNotch size={15} className="shrink-0 text-muted motion-safe:animate-spin" aria-hidden />
         <span className="flex-1 text-[13px] font-medium text-ink">Trip tasks</span>

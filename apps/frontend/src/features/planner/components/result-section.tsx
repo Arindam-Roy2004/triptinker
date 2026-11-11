@@ -1,4 +1,6 @@
-import { ArrowClockwise, ArrowCounterClockwise, BookmarkSimple, Check, Copy, DownloadSimple, FileText, GlobeSimple, Info, Plus, Printer, Sun, X } from '@phosphor-icons/react';
+import { ArrowClockwise, ArrowCounterClockwise, BookmarkSimple, Check, Copy, DownloadSimple, FileText, GlobeSimple, Info, Plus, Printer, Sun } from '@phosphor-icons/react';
+import { AnimateIcon } from '@animate-ui/react/icons';
+import { Cancel01 } from '@/components/animate-ui/icons/hugeicons/cancel-01';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { motion, useReducedMotion } from 'motion/react';
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
@@ -278,12 +280,15 @@ export function ResultSection(props: Props) {
                 {itinerary.destination}
               </ShimmerLabel>
               {trip.source === 'sample' && (
-                <span className="label inline-flex items-center gap-1 rounded-full border border-line py-px pr-1 pl-2 text-[10px] text-muted">
+                <span className="label inline-flex items-center gap-1 rounded-full border border-edge-control py-px pr-1 pl-2 text-[10px] text-muted">
                   Sample
                   {props.onHideSample && (
-                    <button type="button" onClick={props.onHideSample} aria-label="Hide sample" className="grid size-3.5 place-items-center rounded-full text-subtle transition-colors hover:bg-ink/8 hover:text-ink">
-                      <X size={9} weight="bold" aria-hidden />
-                    </button>
+                    // Same cross as the hero's toggle: it turns a quarter on hover before the trip folds away.
+                    <AnimateIcon animateOnHover asChild>
+                      <button type="button" onClick={props.onHideSample} aria-label="Hide sample" className="grid size-3.5 place-items-center rounded-full text-subtle transition-colors hover:bg-ink/8 hover:text-ink">
+                        <Cancel01 size={10} aria-hidden />
+                      </button>
+                    </AnimateIcon>
                   )}
                 </span>
               )}
@@ -315,7 +320,7 @@ export function ResultSection(props: Props) {
       </div>
 
       {/* Stats */}
-      <Reveal as="div" index={4} className={cn('relative grid gap-px border-b border-line bg-line', STAT_COLS[stats.length as keyof typeof STAT_COLS])}>
+      <Reveal as="div" index={4} className={cn('relative grid gap-px border-b border-line bg-edge', STAT_COLS[stats.length as keyof typeof STAT_COLS])}>
         <PulseLine className="absolute inset-x-0 top-0 z-10" duration={2.8} repeatDelay={4} />
         {stats.map((stat) => (
           <Stat key={stat.label} {...stat} />
@@ -451,7 +456,7 @@ export function ResultSection(props: Props) {
                 >
                   <WindowFrame
                     title={`Day ${pad2(dayIndex + 1)} · stop ${pad2(current + 1)} of ${pad2(day.stops.length)}`}
-                    className="rounded-xl"
+                    className="rounded-xl shadow-elevated"
                   >
                     <StopDetail
                       readOnly={locked}
@@ -478,7 +483,7 @@ export function ResultSection(props: Props) {
       {itinerary.notes.length > 0 && (
         <div className="border-t border-line">
           <p className="label bg-surface px-6 py-4 text-[12px] text-muted">Before you go</p>
-          <ol className="grid grid-cols-1 gap-px border-t border-line bg-line sm:grid-cols-2">
+          <ol className="grid grid-cols-1 gap-px border-t border-line bg-edge sm:grid-cols-2">
             {itinerary.notes.map((note, i) => (
               <li key={note} className="flex gap-4 bg-surface px-6 py-5 sm:[&:last-child:nth-child(odd)]:col-span-2">
                 <span className="label tabular pt-0.5 text-[12px] text-brand">{pad2(i + 1)}</span>

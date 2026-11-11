@@ -7,6 +7,8 @@ import { livePlan, type LivePlan } from '../partial-json';
 import type { GenerationState } from '../use-generation';
 import { highlightJson } from './json-highlight';
 import { WindowFrame } from './window-frame';
+
+const EASE = [0.22, 1, 0.36, 1] as const;
 import { WebSearch } from './web-search';
 import { ThinkingState } from './thinking-state';
 import { TaskList, type PlanningTask } from './task-list';
@@ -110,7 +112,17 @@ export function RunPanel({ state, onCancel }: { state: Running; onCancel: () => 
   }, [reduce]);
 
   return (
-    <section ref={root} aria-label="Generation progress" aria-busy="true" className="grid grid-cols-1 items-start gap-5 border-t border-line bg-surface p-4 sm:gap-6 sm:p-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-stretch">
+    // Rises in when a run starts; on stop (or when the plan lands) it blurs and folds shut, rather
+    // than vanishing in one frame. The parent's AnimatePresence holds it until the fold is done.
+    <motion.section
+      ref={root}
+      aria-label="Generation progress"
+      aria-busy="true"
+      initial={reduce ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0, transition: { duration: 0.3, ease: EASE } }}
+      exit={reduce ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0, height: 0, paddingTop: 0, paddingBottom: 0, filter: 'blur(6px)', transition: { duration: 0.34, ease: EASE } }}
+      className="grid grid-cols-1 items-start gap-5 overflow-hidden border-t border-line bg-sunken/45 p-4 shadow-recess sm:gap-6 sm:p-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-stretch"
+    >
       <ThinkingState label={state.kind === 'refine' ? 'Revising' : 'Thinking'} detail={line.text} detailKey={line.key} elapsed={elapsed} onStop={onCancel}>
         {searched && <WebSearch query={state.searchQuery} sources={state.sources} searching={state.stage === 'searching'} elapsed={elapsed} />}
         <TaskList tasks={tasks} />
@@ -118,24 +130,24 @@ export function RunPanel({ state, onCancel }: { state: Running; onCancel: () => 
 
       {/* Live preview / raw JSON */}
       <div role="region" aria-label="Live plan panel" className="relative min-w-0 lg:min-h-72">
-        <WindowFrame title={view === 'json' ? 'Trip data' : state.stage === 'validating' ? 'Checking plan' : 'Live plan'} action={<ViewToggle value={view} onChange={setView} />} className="h-[22rem] rounded-xl border border-line shadow-none lg:absolute lg:inset-0 lg:h-full" bodyClassName="overflow-hidden">
+        <WindowFrame title={view === 'json' ? 'Trip data' : state.stage === 'validating' ? 'Checking plan' : 'Live plan'} action={<ViewToggle value={view} onChange={setView} />} className="h-[22rem] rounded-xl shadow-elevated lg:absolute lg:inset-0 lg:h-full" bodyClassName="overflow-hidden">
           <div className="h-full min-h-0">
             {view === 'preview' ? <LivePreview plan={plan} writing={state.stage === 'drafting' || state.stage === 'connecting'} /> : <RawJson raw={state.raw} />}
           </div>
         </WindowFrame>
       </div>
-    </section>
+    </motion.section>
   );
 }
 
 function ViewToggle({ value, onChange }: { value: 'preview' | 'json'; onChange: (v: 'preview' | 'json') => void }) {
   return (
-    <span role="tablist" aria-label="Stream view" className="relative grid grid-cols-2 rounded-lg bg-sunken p-0.5">
+    <span role="tablist" aria-label="Stream view" className="relative grid grid-cols-2 rounded-lg bg-sunken p-0.5 shadow-[inset_0_0_0_1px_var(--edge)]">
       {/* One pill that slides to the selected tab rather than two that blink. Plain CSS on purpose: a
           shared-layout (layoutId) pill would hold the panel's exit open when the run ends. */}
       <span
         aria-hidden
-        className="absolute inset-y-0.5 left-0.5 w-[calc(50%-2px)] rounded-md bg-surface shadow-[0_0_0_1px_var(--line)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+        className="absolute inset-y-0.5 left-0.5 w-[calc(50%-2px)] rounded-md bg-surface shadow-control transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
         style={{ transform: value === 'json' ? 'translateX(100%)' : undefined }}
       />
       {(
@@ -190,7 +202,7 @@ function usePinnedToBottom<T extends HTMLElement>(dep: unknown) {
 }
 
 function JumpToLatest({ onClick }: { onClick: () => void }) {
-  return <button type="button" onClick={onClick} className="absolute bottom-3 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-line-strong bg-surface px-3 py-1.5 text-[11px] font-medium text-ink shadow-lift transition-colors hover:bg-sunken focus-visible:outline-2 focus-visible:outline-brand"><ArrowDown size={12} aria-hidden />Jump to latest</button>;
+  return <button type="button" onClick={onClick} className="absolute bottom-3 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-[11px] font-medium text-ink shadow-float transition-colors hover:bg-sunken focus-visible:outline-2 focus-visible:outline-brand"><ArrowDown size={12} aria-hidden />Jump to latest</button>;
 }
 
 function RawJson({ raw }: { raw: string }) {
@@ -214,7 +226,7 @@ function RawJson({ raw }: { raw: string }) {
 const enter = { initial: { opacity: 0, y: 4, filter: 'blur(2px)' }, animate: { opacity: 1, y: 0, filter: 'blur(0px)' }, transition: { duration: 0.35, ease } };
 
 /** A day's stops hang off a thin rail; each stop is a node on it. */
-const RAIL = "relative mt-1.5 flex flex-col before:absolute before:inset-y-2 before:left-[3px] before:w-px before:bg-line before:content-['']";
+const RAIL = "relative mt-1.5 flex flex-col before:absolute before:inset-y-2 before:left-[3px] before:w-px before:bg-edge-separator before:content-['']";
 const ROW = 'relative grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-baseline gap-2 py-1 pl-5 text-[13px] leading-5';
 
 /** The rail node: grey once written, brand-coloured on the stop being written now. The caret is the only thing that blinks. */

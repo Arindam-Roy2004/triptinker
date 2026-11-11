@@ -15,7 +15,7 @@ const buttonVariants = cva(
       variant: {
         primary: 't-surface t-surface-primary text-brand-ink',
         secondary: 't-surface t-surface-outline text-ink',
-        clay: 't-surface t-surface-clay text-white',
+        signal: 'signal-fill',
         danger: 't-surface t-surface-danger text-err',
         destructive: 't-surface t-surface-destructive text-white',
         ghost: 'text-ink hover:bg-ink/6 active:scale-[0.97] aria-expanded:bg-ink/6',

@@ -2,6 +2,8 @@ import { ArrowUp, WarningCircle } from '@phosphor-icons/react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useEffect, useId, useState, type KeyboardEvent, type RefObject } from 'react';
 import { LIMITS } from '@triptinker/contracts';
+import { AnimateIcon } from '@animate-ui/react/icons';
+import { Cancel01 } from '@/components/animate-ui/icons/hugeicons/cancel-01';
 import { Shimmer } from '@/components/ai/shimmer';
 import { Button } from '@/components/ui/button';
 import { formatElapsed } from '@/lib/format';
@@ -62,7 +64,7 @@ export function RefineBar(props: Props) {
     <div className="border-b border-line bg-sunken/50 px-6 py-4 last:border-b-0">
       <div
         className={cn(
-          'overflow-hidden rounded-xl border border-line bg-surface shadow-[0_1px_2px_rgb(0_0_0/0.04)] transition-[opacity,border-color] focus-within:border-line-strong',
+          'overflow-hidden rounded-xl bg-surface shadow-[0_0_0_1px_var(--edge-control),0_1px_2px_0_var(--edge-drop)] transition-[opacity,box-shadow] focus-within:shadow-[0_0_0_1px_var(--edge-hover),0_1px_2px_0_var(--edge-drop)]',
           props.disabled && mode === 'idle' && 'pointer-events-none opacity-60',
         )}
       >
@@ -165,7 +167,7 @@ function Compose({ value, onChange, onSubmit, error, onClearError, disabled, inp
                   type="button"
                   disabled={disabled}
                   onClick={() => send(s)}
-                  className="h-7 shrink-0 rounded-lg border border-line px-2.5 text-[12px] text-muted transition-[color,border-color,transform] hover:border-line-strong hover:text-ink active:scale-95"
+                  className="h-7 shrink-0 rounded-lg bg-surface px-2.5 text-[12px] text-muted shadow-chip transition-[color,box-shadow,transform] hover:text-ink hover:shadow-control active:scale-95"
                 >
                   {s}
                 </button>
@@ -200,9 +202,12 @@ function Working({ run, instruction, onStop }: { run: Running; instruction: stri
         <p className="truncate text-[12px] leading-5 text-muted">“{instruction}”</p>
       </div>
       <span className="tabular text-[12px] text-subtle">{formatElapsed(elapsed)}</span>
-      <button type="button" onClick={onStop} className="border-b border-dotted border-subtle text-[13px] text-muted transition-colors hover:border-ink hover:text-ink">
-        Stop
-      </button>
+      <AnimateIcon animateOnHover asChild>
+        <button type="button" onClick={onStop} className="group inline-flex items-center gap-1 text-[13px] text-muted transition-colors hover:text-ink">
+          <Cancel01 size={12} aria-hidden />
+          <span className="border-b border-dotted border-subtle transition-colors group-hover:border-ink">Stop</span>
+        </button>
+      </AnimateIcon>
     </div>
   );
 }

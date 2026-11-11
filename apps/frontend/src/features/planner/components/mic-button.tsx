@@ -72,7 +72,7 @@ export function MicButton({ onText, disabled, size = 8, onActiveChange }: Props)
         className={cn(
           'relative grid shrink-0 place-items-center rounded-lg border transition-[background-color,color,border-color,transform] duration-200 active:scale-95 disabled:opacity-60',
           size === 9 ? 'size-9' : 'size-8',
-          recording ? 'border-err bg-err text-white' : 'border-line bg-surface text-muted hover:border-line-strong hover:text-ink',
+          recording ? 'border-err bg-err text-white' : 'border-edge-control bg-surface text-muted hover:border-edge-hover hover:text-ink',
         )}
       >
         {/* Two soft rings ripple out while it listens; with reduced motion the stop square alone says so. */}

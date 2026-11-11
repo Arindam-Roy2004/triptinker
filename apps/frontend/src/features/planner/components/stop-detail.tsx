@@ -73,7 +73,7 @@ export function StopDetail({ stop, index, count, dayId, days, destination, onMov
         </Button>
         {!readOnly && (
           <div className="flex items-center gap-1.5">
-            <div role="group" aria-label="Stop order" className="flex items-center rounded-md border border-line bg-surface p-0.5">
+            <div role="group" aria-label="Stop order" className="flex items-center rounded-lg bg-surface p-px shadow-control">
               <Tooltip><TooltipTrigger asChild><Button size="icon-sm" variant="ghost" aria-label="Move earlier" disabled={index === 0} onClick={() => onMove(index - 1)}><ArrowUp /></Button></TooltipTrigger><TooltipContent>Move earlier</TooltipContent></Tooltip>
               <Tooltip><TooltipTrigger asChild><Button size="icon-sm" variant="ghost" aria-label="Move later" disabled={index === count - 1} onClick={() => onMove(index + 1)}><ArrowDown /></Button></TooltipTrigger><TooltipContent>Move later</TooltipContent></Tooltip>
             </div>

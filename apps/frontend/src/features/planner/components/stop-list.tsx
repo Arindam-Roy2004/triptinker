@@ -48,7 +48,7 @@ function MarkTag({ mark }: { mark: ChangeMark | 'removed' }) {
 
 /** A day's stops as a list: select (or expand) a row, drag the handle to reorder. */
 export function StopList({ day, days, destination, selectedId, onSelect, inline, actionsFor, onReorder, marks, removed = [], locked, flash }: Props) {
-  const [observeList, moreBelow] = useMoreBelow<HTMLOListElement>();
+  const [observeList, moreBelow, moreAbove] = useMoreBelow<HTMLOListElement>();
   const listRef = useRef<HTMLOListElement>(null);
   const setListRef = useCallback((node: HTMLOListElement | null) => {
     listRef.current = node;
@@ -97,8 +97,9 @@ export function StopList({ day, days, destination, selectedId, onSelect, inline,
         <ol
           ref={setListRef}
           aria-label={`Stops for ${day.title}`}
-          data-more={moreBelow || undefined}
-          className="flex flex-col bg-surface lg:min-h-0 lg:overflow-y-auto lg:[scrollbar-width:thin] lg:data-more:[mask-image:linear-gradient(to_bottom,black_calc(100%-40px),transparent)]"
+          // Fade whichever edge has more to scroll to, so a row is never sliced off without a hint.
+          data-fade={moreAbove && moreBelow ? 'both' : moreAbove ? 'top' : moreBelow ? 'bottom' : undefined}
+          className="flex flex-col bg-surface lg:min-h-0 lg:overflow-y-auto lg:[scrollbar-width:thin] lg:data-[fade=both]:[mask-image:linear-gradient(to_bottom,transparent,black_32px,black_calc(100%-40px),transparent)] lg:data-[fade=bottom]:[mask-image:linear-gradient(to_bottom,black_calc(100%-40px),transparent)] lg:data-[fade=top]:[mask-image:linear-gradient(to_bottom,transparent,black_32px)]"
         >
           {day.stops.map((stop, index) => (
             <Row

@@ -5,7 +5,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['**/dist', '.vercel', '**/node_modules', 'playwright-report', 'test-results', 'output', 'apps/frontend/src/components/ui'] },
+  { ignores: ['**/dist', '.vercel', '**/node_modules', 'playwright-report', 'test-results', 'output', 'apps/frontend/src/components/ui', 'apps/frontend/src/components/animate-ui'] },
   {
     files: ['**/*.{ts,tsx}'],
     extends: [js.configs.recommended, ...tseslint.configs.recommended],

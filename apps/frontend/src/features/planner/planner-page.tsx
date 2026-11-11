@@ -1,13 +1,15 @@
-import { ArrowRight, Plus, X } from '@phosphor-icons/react';
-import { AnimatePresence } from 'motion/react';
-import { useState } from 'react';
+import { ArrowRight, Plus } from '@phosphor-icons/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { useEffect, useState } from 'react';
 import { LIMITS } from '@triptinker/contracts';
+import { COLUMN, GuideLine, GuideRails } from '@/components/site/guides';
 import { HeroGlow } from '@/components/site/hero-glow';
 import { SiteHeader } from '@/components/site/site-header';
 import { ThemeToggle } from '@/components/site/theme-toggle';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { SceneCaption, SceneStage } from '@/features/scenes/scene-stage';
+import { cn } from '@/lib/utils';
 import { SCENES, sceneSrc } from '@/features/scenes/scenes';
 import { FailureLab } from './components/failure-lab';
 import { LibraryMenu } from './components/library-menu';
@@ -15,7 +17,8 @@ import { PromptCard } from './components/prompt-card';
 import { RefineBar } from './components/refine-bar';
 import { ResultSection } from './components/result-section';
 import { RunPanel } from './components/run-panel';
-import { FeatureCells, ProblemCell } from './components/strip-cells';
+import { SampleToggle } from './components/sample-toggle';
+import { FeatureCells, ProblemCell, StoppedNote } from './components/strip-cells';
 import { usePlanner } from './use-planner';
 
 const EXAMPLES = [
@@ -26,7 +29,7 @@ const EXAMPLES = [
 ];
 
 /** Frosted chip over the scene, for the example briefs and the sample. */
-const CHIP = 'frost h-8 rounded-lg px-3 text-[13px] font-medium text-ink shadow-[var(--chip-shadow)] transition-[background-color,transform] hover:bg-surface active:scale-95 disabled:opacity-60';
+const CHIP = 'glass-card h-8 rounded-lg px-3 text-[13px] font-medium text-ink transition-[background-color,transform] hover:bg-surface active:scale-95 disabled:opacity-60';
 
 export function PlannerPage() {
   const {
@@ -40,10 +43,25 @@ export function PlannerPage() {
   } = usePlanner();
   // The caption names the scene on screen, so it changes when the picture starts to, not before.
   const [revealed, setRevealed] = useState(scene.scene);
+  const reduce = useReducedMotion();
+
+  // A stopped plan leaves a short note under the prompt. It clears itself after a few seconds, and
+  // at once when any new run starts (adjusted during render, so a stale note never flashes).
+  const [stopped, setStopped] = useState(false);
+  if (stopped && running) setStopped(false);
+  useEffect(() => {
+    if (!stopped) return;
+    const timer = setTimeout(() => setStopped(false), 6000);
+    return () => clearTimeout(timer);
+  }, [stopped]);
+  const stopPlanning = () => {
+    if (generating) setStopped(true);
+    generation.cancel();
+  };
 
   const runStatus = (kind: 'generate' | 'refine') => {
     if (runKind !== kind) return null;
-    if (state.status === 'running') return <RunPanel key="run" state={state} onCancel={generation.cancel} />;
+    if (state.status === 'running') return <RunPanel key="run" state={state} onCancel={kind === 'generate' ? stopPlanning : generation.cancel} />;
     if (problem) {
       return (
         <ProblemCell
@@ -66,6 +84,7 @@ export function PlannerPage() {
   return (
     <div className="relative isolate flex min-h-dvh flex-col overflow-x-clip">
       <HeroGlow />
+      <GuideRails />
       <SiteHeader>
         {trip && (
           <Button variant="secondary" size="sm" onClick={requestNew} aria-label="New trip">
@@ -83,7 +102,7 @@ export function PlannerPage() {
         <ThemeToggle />
       </SiteHeader>
 
-      <main className="mx-auto w-full max-w-[1104px] flex-1 px-4 sm:px-6 xl:px-0">
+      <main className={cn(COLUMN, 'flex-1')}>
         {/* Hero */}
         <section aria-labelledby="hero-title" className="flex flex-col items-center gap-6 pt-8 pb-10 text-center sm:pt-10 md:pb-12">
           <div className="flex flex-col gap-4">
@@ -97,22 +116,15 @@ export function PlannerPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-4">
-            {trip?.source === 'sample' ? (
-              <Button variant="secondary" onClick={hideSample}>
-                <X /> Hide sample
-              </Button>
-            ) : (
-              <Button variant="secondary" onClick={openSample}>
-                View sample
-              </Button>
-            )}
+            <SampleToggle shown={trip?.source === 'sample'} onShow={openSample} onHide={hideSample} />
             <Button variant="primary" onClick={focusPrompt}>
               Plan a trip <ArrowRight />
             </Button>
           </div>
         </section>
 
-        {/* Scene, prompt and status strip */}
+        {/* Scene, prompt and status strip, framed by guide lines 12px off its edges */}
+        <GuideLine frame="below" />
         <div id="scene" className="scroll-mt-20 overflow-hidden rounded-md shadow-lift">
           {/* The card sits in the lower part of the scene, leaving the landmark visible above it. */}
           <SceneStage scene={scene.scene} transition={scene.transition} dim={generating} onReveal={setRevealed} className="flex min-h-[520px] flex-col items-center justify-end px-4 pt-36 pb-16 md:min-h-[540px] md:pb-20">
@@ -124,7 +136,7 @@ export function PlannerPage() {
                 value={form.brief}
                 onChange={(brief) => setForm((f) => ({ ...f, brief }))}
                 onSubmit={generate}
-                onStop={generation.cancel}
+                onStop={stopPlanning}
                 running={generating}
                 typed={EXAMPLES.map((e) => e.brief)}
                 minLength={LIMITS.briefMin}
@@ -152,8 +164,9 @@ export function PlannerPage() {
                 ))}
               </div>
               {notConfigured && (
-                <p className="frost mt-1 rounded-xl px-3 py-2 text-center text-[13px] text-ink shadow-[0_0_0_1px_rgb(0_0_0/0.08)]">AI planning is unavailable. You can still view a sample trip.</p>
+                <p className="glass-card mt-1 rounded-xl px-3 py-2 text-center text-[13px] text-ink">AI planning is unavailable. You can still view a sample trip.</p>
               )}
+              <AnimatePresence initial={false}>{stopped && <StoppedNote key="stopped" onPlanAgain={() => generate(form.brief)} />}</AnimatePresence>
             </div>
             <SceneCaption
               scene={revealed}
@@ -167,9 +180,19 @@ export function PlannerPage() {
             {generateStatus ?? (!trip && <FeatureCells key="features" />)}
           </AnimatePresence>
         </div>
+        <GuideLine frame="above" />
 
+        {/* Hiding the sample (or starting over) lets the trip sink and blur away instead of
+            vanishing; showing it needs no wrapper entrance, as the section builds itself in. */}
+        <AnimatePresence initial={false}>
         {trip && (
-          <div className="mt-16 flex flex-col gap-10 sm:mt-24">
+          <motion.div
+            key="trip"
+            initial={false}
+            exit={reduce ? { opacity: 0, transition: { duration: 0.15 } } : { opacity: 0, y: 24, scale: 0.985, filter: 'blur(8px)', transition: { duration: 0.36, ease: [0.22, 1, 0.36, 1] } }}
+            className="mt-16 origin-top sm:mt-24"
+          >
+            <GuideLine frame="below" />
             <div className={generating ? 'pointer-events-none opacity-50 transition-opacity' : 'transition-opacity'} inert={generating}>
               <ResultSection
                 key={trip.id} // a different trip replays the entrance; edits to this one don't
@@ -212,13 +235,19 @@ export function PlannerPage() {
                 />
               </ResultSection>
             </div>
-          </div>
+            <GuideLine frame="above" />
+          </motion.div>
         )}
+        </AnimatePresence>
       </main>
 
-      <footer className="mx-auto mt-24 flex w-full max-w-[1104px] flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-8 text-[13px] text-muted sm:px-6 xl:px-0">
-        <span>Check opening hours and bookings before you go.</span>
-        {health?.simulation && <FailureLab value={simulate} onChange={setSimulate} />}
+      {/* From `sm` the line under the last card is the footer's top edge, so the footer starts right
+          there. Guide lines are hidden on phones, so there it keeps its own gap and rule. */}
+      <footer className={cn(COLUMN, 'mt-16 sm:mt-0')}>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-edge py-8 text-[13px] text-muted sm:border-t-0">
+          <span>Check opening hours and bookings before you go.</span>
+          {health?.simulation && <FailureLab value={simulate} onChange={setSimulate} />}
+        </div>
       </footer>
 
       <AlertDialog open={confirmNew} onOpenChange={setConfirmNew}>

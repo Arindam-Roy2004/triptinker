@@ -1,4 +1,6 @@
-import { ArrowUp, Minus, Plus, SlidersHorizontal, Stop } from '@phosphor-icons/react';
+import { ArrowUp, Minus, Plus, SlidersHorizontal } from '@phosphor-icons/react';
+import { AnimateIcon } from '@animate-ui/react/icons';
+import { Cancel01 } from '@/components/animate-ui/icons/hugeicons/cancel-01';
 import { useReducedMotion } from 'motion/react';
 import { useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
 import { LIMITS, PACES, type Pace } from '@triptinker/contracts';
@@ -132,9 +134,12 @@ export function PromptCard({
         }}
         onAnimationEnd={() => setShaking(false)}
         className={cn(
-          'relative flex flex-col gap-3 rounded-md border border-line bg-surface px-4 pt-4 pb-3 shadow-lift transition-[box-shadow,border-color] duration-300',
+          'relative flex flex-col gap-3 rounded-md bg-surface px-4 pt-4 pb-3 shadow-elevated transition-[box-shadow] duration-300',
           shaking && !reduce && 'animate-shake',
-          (focused || running) && 'border-clay shadow-[0_0_0_4px_color-mix(in_oklab,var(--clay)_16%,transparent),var(--lift)]',
+          // Typing: the full signal ring and a soft wash. Planning: a faint track that the dashes run along.
+          running
+            ? 'shadow-[0_0_0_1px_color-mix(in_oklab,var(--running)_45%,transparent),var(--elevated)]'
+            : focused && 'shadow-[0_0_0_1px_var(--signal),0_0_0_4px_color-mix(in_oklab,var(--signal)_18%,transparent),var(--elevated)]',
         )}
         aria-describedby={error ? `${id}-error` : undefined}
       >
@@ -191,17 +196,19 @@ export function PromptCard({
             {running ? (
               // Keyed apart from the send button: sharing one element would turn the click on Stop into a
               // click on a submit button by the time the browser acts on it, and restart the run.
-              <button
-                key="stop"
-                type="button"
-                onClick={onStop}
-                aria-label="Stop generating"
-                className="grid size-8 place-items-center rounded-xl border border-clay bg-surface text-clay transition-transform active:scale-95"
-              >
-                <Stop size={13} weight="fill" />
-              </button>
+              // Hovering anywhere on the button turns the cross a quarter, so it reads as "stop this".
+              <AnimateIcon key="stop" animateOnHover asChild>
+                <button
+                  type="button"
+                  onClick={onStop}
+                  aria-label="Stop generating"
+                  className="grid size-8 place-items-center rounded-xl border border-signal bg-surface text-signal-text transition-[transform,background-color] hover:bg-signal/10 active:scale-95"
+                >
+                  <Cancel01 size={15} aria-hidden />
+                </button>
+              </AnimateIcon>
             ) : (
-              <button key="send" type="submit" aria-label={submitLabel} className="t-surface t-surface-clay relative grid size-8 place-items-center rounded-lg text-white transition-[scale] active:scale-[0.97]">
+              <button key="send" type="submit" aria-label={submitLabel} className="signal-fill relative grid size-8 place-items-center rounded-lg transition-[scale] active:scale-[0.97]">
                 <ArrowUp size={16} weight="bold" />
               </button>
             )}
@@ -239,13 +246,13 @@ function TripOptionsControl({ options, onChange, disabled }: { options: TripOpti
       <PopoverContent align="start" sideOffset={10} className="w-72 rounded-2xl p-0">
         <div className="border-b border-line p-4">
           <p className="label text-[11px] text-muted">Days</p>
-          <div className="mt-2 flex items-center justify-between rounded-xl border border-line p-1">
+          <div className="mt-2 flex items-center justify-between rounded-xl bg-sunken p-1 shadow-[inset_0_0_0_1px_var(--edge)]">
             <button
               type="button"
               aria-label="Fewer days"
               disabled={options.days === null}
               onClick={() => onChange({ ...options, days: options.days && options.days > 1 ? options.days - 1 : null })}
-              className="grid size-7 place-items-center rounded-lg hover:bg-sunken disabled:opacity-40"
+              className="grid size-7 place-items-center rounded-lg transition-[background-color,box-shadow] hover:bg-surface hover:shadow-chip disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:shadow-none"
             >
               <Minus size={14} />
             </button>
@@ -257,7 +264,7 @@ function TripOptionsControl({ options, onChange, disabled }: { options: TripOpti
               aria-label="More days"
               disabled={options.days === LIMITS.maxDays}
               onClick={() => onChange({ ...options, days: options.days === null ? 3 : Math.min(LIMITS.maxDays, options.days + 1) })}
-              className="grid size-7 place-items-center rounded-lg hover:bg-sunken disabled:opacity-40"
+              className="grid size-7 place-items-center rounded-lg transition-[background-color,box-shadow] hover:bg-surface hover:shadow-chip disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:shadow-none"
             >
               <Plus size={14} />
             </button>
@@ -265,7 +272,7 @@ function TripOptionsControl({ options, onChange, disabled }: { options: TripOpti
         </div>
         <div className="p-4">
           <p className="label text-[11px] text-muted">Pace</p>
-          <div role="radiogroup" aria-label="Pace" className="mt-2 grid grid-cols-3 gap-1 rounded-xl border border-line p-1">
+          <div role="radiogroup" aria-label="Pace" className="mt-2 grid grid-cols-3 gap-1 rounded-xl bg-sunken p-1 shadow-[inset_0_0_0_1px_var(--edge)]">
             {PACES.map((pace) => (
               <button
                 key={pace}
@@ -273,7 +280,7 @@ function TripOptionsControl({ options, onChange, disabled }: { options: TripOpti
                 role="radio"
                 aria-checked={options.pace === pace}
                 onClick={() => onChange({ ...options, pace })}
-                className={cn('label h-7 rounded-lg text-[11px] transition-colors', options.pace === pace ? 'bg-ink text-bg' : 'text-muted hover:bg-sunken hover:text-ink')}
+                className={cn('label h-7 rounded-lg text-[11px] transition-colors', options.pace === pace ? 'bg-surface text-ink shadow-control' : 'text-muted hover:text-ink')}
               >
                 {PACE_LABEL[pace]}
               </button>

@@ -3,8 +3,8 @@ import { useReducedMotion } from 'motion/react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { CELL, LightField, MOTION, hexColor, veilAlpha } from './pixel-motion';
-import { SCENE_SIZES, loadSceneImage, sceneLuminance, warmScene } from './scene-images';
+import { CELL, LightField, MOTION, hexColor } from './pixel-motion';
+import { SCENE_SIZES, loadSceneImage, warmScene } from './scene-images';
 import { FROM_PROMPT, SCENES, sceneSrc, sceneSrcSet, type Scene, type SceneTransition } from './scenes';
 
 /**
@@ -36,8 +36,8 @@ const saveData = () => {
   return !!connection?.saveData || /(^|-)2g$/.test(connection?.effectiveType ?? '');
 };
 
-/** The light takes the theme's clay accent: the colour of the running ring and the stop button. */
-const accentOf = (element: Element) => hexColor(getComputedStyle(element).getPropertyValue('--clay'), [217, 119, 87]);
+/** The light takes the theme's running colour: the colour of the dashes that run the prompt card's edge. */
+const accentOf = (element: Element) => hexColor(getComputedStyle(element).getPropertyValue('--running'), [141, 169, 196]);
 
 /** What the dissolve canvas holds: nothing, an interrupted dissolve, or a finished one awaiting the <img>. */
 type Painted = 'none' | 'partial' | 'handoff';
@@ -49,12 +49,11 @@ type Painted = 'none' | 'partial' | 'handoff';
  *  - Changing `scene` plays a dissolve shaped by `transition` (a ripple from the prompt, or a
  *    wipe in the direction being browsed). Arriving pixels catch a soft light, then the finished
  *    image is handed to the <img>. A new change mid-dissolve continues from what is on screen.
- *  - `dim` (a plan is being written) spreads a veil from the prompt card behind a ring of light,
- *    keeps a twinkle and a pulse in time with the running ring going while the work runs, and
- *    lifts the same way when it ends.
+ *  - `dim` (a plan is being written) sends one soft ripple of light from the prompt card, then
+ *    keeps a sparse twinkle going until the work ends. The scene keeps its colour throughout.
  *
  * The light is one field over the frame (pixel-motion.ts), drawn like PixelButton: gapped pixels,
- * each with its own colour and brightness, lit at random as a front passes, then decaying.
+ * each a pale tint with its own brightness, lit at random as a front passes, then decaying.
  *
  * `onReveal` fires when a scene starts to appear, so a caption can change with the picture.
  * The whole stack drifts slowly (Ken Burns). Reduced motion switches once the image is ready.
@@ -87,7 +86,6 @@ export function SceneStage({
   transitionRef.current = transition;
   const onRevealRef = useRef(onReveal);
   onRevealRef.current = onReveal;
-  const veilOn = useRef(false);
 
   useEffect(() => {
     if (lightRef.current) light.current = new LightField(lightRef.current);
@@ -121,41 +119,19 @@ export function SceneStage({
     };
   }, [scene]);
 
-  // The veil's strength follows the scene on screen: bright scenes need more than night scenes.
-  useEffect(() => {
-    let cancelled = false;
-    void loadSceneImage(shown)
-      .then((img) => {
-        const field = light.current;
-        if (cancelled || !field) return;
-        field.alpha = veilAlpha(sceneLuminance(img));
-        field.repaint();
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [shown]);
-
-  // The working veil.
+  // While a plan is written: one soft ripple from the card as it starts, then a quiet twinkle
+  // that fades out by itself when the work ends. Nothing at all under reduced motion.
   useEffect(() => {
     const field = light.current;
     const frame = frameRef.current;
-    if (!field || !frame) return;
-    // Nothing to lift on first render, or after a run that never dimmed the scene.
-    if (!dim && !veilOn.current) return;
-    veilOn.current = dim;
+    if (!field || !frame || !dim || reduce) return;
     field.resize(frame.clientWidth, frame.clientHeight, accentOf(frame));
-    if (reduce) {
-      field.settle(dim);
-      return;
-    }
-    // A veil front still travelling is replaced, so a quick stop turns the veil around mid-way.
-    field.front({ kind: 'ring', x: FROM_PROMPT.x, y: FROM_PROMPT.y }, dim ? MOTION.veilIn : MOTION.veilOut, dim);
-    const timer = dim ? setTimeout(() => field.working({ x: FROM_PROMPT.x, y: FROM_PROMPT.y }), MOTION.veilIn.duration) : undefined;
+    field.front({ kind: 'ring', x: FROM_PROMPT.x, y: FROM_PROMPT.y }, MOTION.start);
+    // The twinkle starts as the ripple passes the card's edges, so the two read as one gesture.
+    const timer = setTimeout(() => field.working(true), MOTION.start.duration * 0.5);
     return () => {
       clearTimeout(timer);
-      field.working(null);
+      field.working(false);
     };
   }, [dim, reduce]);
 
@@ -305,7 +281,7 @@ export function SceneStage({
 /** Frosted caption naming the place, with quiet controls to browse the other scenes. */
 export function SceneCaption({ scene, position, onPrev, onNext, className }: { scene: Scene; position: { index: number; total: number }; onPrev: () => void; onNext: () => void; className?: string }) {
   return (
-    <div className={cn('frost flex h-8 items-center gap-1 rounded-xl pr-1 pl-3 text-ink shadow-[0_0_0_1px_rgb(0_0_0/0.08),0_4px_12px_-4px_rgb(0_0_0/0.25)]', className)}>
+    <div className={cn('glass-card flex h-8 items-center gap-1 rounded-xl pr-1 pl-3 text-ink', className)}>
       <p className="label truncate text-[11px]" aria-live="polite">
         {scene.name} <span className="text-muted">· {scene.place}</span>
       </p>

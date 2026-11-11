@@ -1,8 +1,12 @@
 /**
  * One motion system for every pixel effect on the scene: the browse wipe, the ripple from the
- * prompt, and the veil that marks a plan being written. They share curves, durations and one
- * light field, built on the same recipe as PixelButton (the Save trip button): gapped pixels,
- * each with its own brightness tier and colour, lit at random as a front passes, then decaying.
+ * prompt, and the quiet light that marks a plan being written. They share curves, durations and
+ * one light field, built on the same recipe as PixelButton (the Save trip button): gapped pixels,
+ * each with its own brightness tier, lit at random as a front passes, then decaying.
+ *
+ * Restraint, after Aceternity's Pixel Prompt Button: the light is a pale tint of the scene, never
+ * a new hue; a press sends one soft ripple, and work in progress is a sparse twinkle. The scene
+ * is never darkened, and nothing repeats on a timer.
  */
 
 /** CSS px per dissolve block for the scene image itself (the artwork's own pixel scale). */
@@ -59,13 +63,15 @@ export const MOTION = {
   wipe: { delay: 140, duration: 950, ease: EASE.sweep, glow: 0.6 },
   /** A destination matched from the prompt: spreads from the card. */
   ripple: { delay: 0, duration: 800, ease: EASE.out, glow: 0.7 },
-  /** A plan starts: the strongest light, from the same point and on the same curve as the ripple. */
-  veilIn: { delay: 0, duration: 800, ease: EASE.out, glow: 1.15 },
-  /** The plan is done: the veil lifts a little quicker, with a softer light. */
-  veilOut: { delay: 0, duration: 600, ease: EASE.out, glow: 0.6 },
-  /** While a plan is written, a soft pulse leaves the card in time with its running ring (3.4s). */
-  pulse: { delay: 0, duration: 1600, ease: EASE.out, glow: 0.4 },
+  /** A plan starts: one soft ripple from the card, slower and fainter than a scene change. Once. */
+  start: { delay: 0, duration: 1200, ease: EASE.out, glow: 0.75 },
 } satisfies Record<string, PixelMotion>;
+
+/**
+ * While a plan is written: sparks per cell per second. Over a ~16k-cell scene this lights about
+ * eighty pixels a second, each fading in under half a second: a quiet shimmer, not a sparkler.
+ */
+const TWINKLE = 0.005;
 
 /** PixelButton's light decay, so the scene and the buttons fade at one rate. */
 const DECAY = 420;
@@ -74,8 +80,8 @@ const GRID = 6;
 const PIXEL = 5;
 /** Half-width of the band around a front in which pixels can light. */
 const BAND = 18;
-/** How ragged the veil's edge is, in px. */
-const EDGE_JITTER = 46;
+/** How far a ring overshoots the farthest corner, so its band clears the frame by the end. */
+const OVERSHOOT = 46;
 
 type Rgb = [number, number, number];
 
@@ -85,48 +91,36 @@ export function hexColor(value: string, fallback: Rgb): Rgb {
   return match ? [parseInt(match[1], 16), parseInt(match[2], 16), parseInt(match[3], 16)] : fallback;
 }
 
-/**
- * The veil darkens bright scenes more than night scenes, which are already dark: a flat 45% black
- * all but vanished on them. The light, not darkness, carries the effect there.
- */
-export const veilAlpha = (luminance: number) => Math.min(0.48, Math.max(0.3, 0.2 + 0.5 * luminance));
+/** Mixes a colour towards white by `amount` (0–1). */
+const toward = ([r, g, b]: Rgb, amount: number): Rgb => [r, g, b].map((v) => Math.round(v + (255 - v) * amount)) as Rgb;
 
 /**
- * Each pixel takes one colour, weighted towards the theme's clay accent (the running ring and the
- * stop button), with amber, gold, peach and a warm white for sparkle. Warm light reads on both the
- * night scenes (it matches their lamps) and the bright ones (it is saturated, not pale).
+ * Light, not colour: each pixel is white, a warm white, or a pale wash of the theme's running
+ * colour (dusty blue). Like the Pixel Prompt Button's lighter tints of its own blue, it lifts the
+ * scene under it rather than painting a new hue over it.
  */
-function palette(clay: Rgb): { rgb: Rgb; weight: number }[] {
+function palette(running: Rgb): { rgb: Rgb; weight: number }[] {
   return [
-    { rgb: clay, weight: 0.34 },
-    { rgb: [255, 170, 92], weight: 0.24 }, // amber
-    { rgb: [255, 207, 112], weight: 0.18 }, // gold
-    { rgb: [255, 196, 170], weight: 0.14 }, // peach
-    { rgb: [255, 246, 232], weight: 0.1 }, // warm white
+    { rgb: [255, 255, 255], weight: 0.5 },
+    { rgb: toward(running, 0.65), weight: 0.3 },
+    { rgb: [255, 247, 236], weight: 0.2 }, // warm white
   ];
 }
 
-/** PixelButton's peak tiers, scaled up: most pixels glow softly, a few flare. */
+/** PixelButton's peak tiers, kept soft: most pixels brighten a little, a few catch the light. */
 const peakTier = () => {
   const value = Math.random();
-  return value < 0.4 ? 0.36 : value < 0.72 ? 0.55 : value < 0.92 ? 0.78 : 1;
+  return value < 0.45 ? 0.3 : value < 0.75 ? 0.45 : value < 0.93 ? 0.62 : 0.8;
 };
 
 export type Wave = { kind: 'ring'; x: number; y: number };
 
-type Front = {
-  wave: Wave;
-  motion: PixelMotion;
-  start: number;
-  /** true veils the cells it passes, false unveils them, null leaves the veil alone. */
-  veil: boolean | null;
-};
+type Front = { wave: Wave; motion: PixelMotion; start: number };
 
 /**
- * The light field over a scene. Cells sit on a 6px grid; each can carry the veil (a contiguous
- * dim block, so the scene darkens evenly) and a gapped 5px light pixel on top. Fronts travel out
- * as rings, and `spark` lights a dissolve's edge; lit pixels decay, and the veil
- * follows a front with a ragged edge. It runs its own frame loop only while something changes.
+ * The light field over a scene. Cells sit on a 6px grid; each holds a gapped 5px light pixel.
+ * Fronts travel out as rings, `spark` lights a dissolve's edge, and `working` keeps a sparse
+ * twinkle going; lit pixels decay. It runs its own frame loop only while something changes.
  */
 export class LightField {
   private readonly ctx: CanvasRenderingContext2D | null;
@@ -139,41 +133,27 @@ export class LightField {
   private colors: string[] = [];
   private colorOf = new Uint8Array(0);
   private peak = new Float32Array(0);
-  private jitter = new Float32Array(0);
   private light = new Float32Array(0);
-  private veiled = new Uint8Array(0);
   private paintedLight = new Float32Array(0);
-  private paintedVeil = new Uint8Array(0);
   private fronts: Front[] = [];
   private raf = 0;
   private last = 0;
   private spawnDebt = 0;
-  private lastPulse = 0;
-
-  /** Veil opacity; follows the scene's brightness. */
-  alpha = 0.45;
-  private ambient = 0;
-  private pulseFrom: { x: number; y: number } | null = null;
-  private readonly pulseEvery = MOTION.pulse.duration + 1800; // 3.4s: the running ring's lap
+  private twinkling = false;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext('2d');
   }
 
-  /**
-   * While a plan is written: sparse twinkles everywhere, and a soft pulse from `from` (fractions
-   * of the frame) once per lap of the prompt's running ring. Pass null to stop.
-   */
-  working(from: { x: number; y: number } | null) {
-    this.ambient = from ? 30 : 0;
-    this.pulseFrom = from;
-    this.lastPulse = performance.now();
-    if (from) this.kick();
+  /** While a plan is written: a sparse twinkle over the scene. Lit pixels fade out on their own when it stops. */
+  working(on: boolean) {
+    this.twinkling = on;
+    if (on) this.kick();
   }
 
   /** Sizes the field to the frame, in CSS px. Keeps state when the size is unchanged. */
-  resize(width: number, height: number, clay: Rgb) {
-    const choices = palette(clay);
+  resize(width: number, height: number, signal: Rgb) {
+    const choices = palette(signal);
     this.colors = choices.map(({ rgb }) => `${rgb[0]} ${rgb[1]} ${rgb[2]}`);
     if (width === this.width && height === this.height) return;
     this.width = width;
@@ -191,11 +171,8 @@ export class LightField {
     const n = this.cols * this.rows;
     this.colorOf = new Uint8Array(n);
     this.peak = new Float32Array(n);
-    this.jitter = new Float32Array(n);
     this.light = new Float32Array(n);
-    this.veiled = new Uint8Array(n);
     this.paintedLight = new Float32Array(n);
-    this.paintedVeil = new Uint8Array(n);
     const total = choices.reduce((sum, c) => sum + c.weight, 0);
     for (let i = 0; i < n; i++) {
       let pick = Math.random() * total;
@@ -203,19 +180,16 @@ export class LightField {
       while (c < choices.length - 1 && (pick -= choices[c].weight) > 0) c++;
       this.colorOf[i] = c;
       this.peak[i] = peakTier();
-      this.jitter[i] = Math.random();
     }
     this.fronts = [];
     this.ctx?.clearRect(0, 0, width, height);
   }
 
   /** Starts a front. Rings are given as fractions of the frame (0–1). */
-  front(wave: Wave, motion: PixelMotion, veil: boolean | null = null, now = performance.now()) {
+  front(wave: Wave, motion: PixelMotion, now = performance.now()) {
     if (!this.cols) return;
     const at = { ...wave, x: wave.x * this.width, y: wave.y * this.height };
-    // A new veil front replaces one still travelling: the veil turns around from where it got to.
-    if (veil !== null) this.fronts = this.fronts.filter((other) => other.veil === null);
-    this.fronts.push({ wave: at, motion, start: now + motion.delay, veil });
+    this.fronts.push({ wave: at, motion, start: now + motion.delay });
     this.kick();
   }
 
@@ -238,20 +212,6 @@ export class LightField {
     this.kick();
   }
 
-  /** Settles to a fully veiled or clear field, with no light: for reduced motion and interruptions. */
-  settle(veiled: boolean) {
-    this.fronts = [];
-    this.working(null);
-    this.veiled.fill(veiled ? 1 : 0);
-    this.light.fill(0);
-    this.repaint();
-  }
-
-  /** Repaints every cell, e.g. after `alpha` changes. */
-  repaint() {
-    this.paintedVeil.fill(2); // force every cell to differ from what is on the canvas
-    this.paint();
-  }
 
   stop() {
     cancelAnimationFrame(this.raf);
@@ -280,16 +240,11 @@ export class LightField {
       }
     }
 
-    if (this.pulseFrom && now - this.lastPulse > this.pulseEvery) {
-      this.lastPulse = now;
-      this.front({ kind: 'ring', ...this.pulseFrom }, MOTION.pulse, null, now);
-    }
-
-    if (this.ambient > 0 && n) {
-      this.spawnDebt += (this.ambient * n * elapsed) / 1_000_000;
+    if (this.twinkling && n) {
+      this.spawnDebt += (TWINKLE * n * elapsed) / 1000;
       for (; this.spawnDebt >= 1; this.spawnDebt--) {
         const i = Math.floor(Math.random() * n);
-        this.light[i] = Math.max(this.light[i], this.peak[i] * 0.7);
+        this.light[i] = Math.max(this.light[i], this.peak[i] * 0.8);
       }
     }
 
@@ -298,8 +253,7 @@ export class LightField {
       if (t < 0) return true;
       const p = front.motion.ease(Math.min(1, t));
       const span = this.reach(front.wave);
-      // Overshoot slightly, so the ragged edge clears the far corners by the end.
-      const radius = p * (span + EDGE_JITTER);
+      const radius = p * (span + OVERSHOOT);
       const strength = front.motion.glow * (1 - p * 0.55);
       for (let i = 0; i < n; i++) {
         const x = this.ox + (i % this.cols) * GRID + GRID / 2;
@@ -308,17 +262,12 @@ export class LightField {
         if (Math.abs(d - radius) < BAND && Math.random() < 0.45 * step) {
           this.light[i] = Math.max(this.light[i], this.peak[i] * strength);
         }
-        if (front.veil !== null && d + this.jitter[i] * EDGE_JITTER < radius) this.veiled[i] = front.veil ? 1 : 0;
       }
-      if (t >= 1) {
-        if (front.veil !== null) this.veiled.fill(front.veil ? 1 : 0);
-        return false;
-      }
-      return true;
+      return t < 1;
     });
 
     const lit = this.paint();
-    if (lit || this.fronts.length || this.ambient > 0 || this.pulseFrom) this.kick();
+    if (lit || this.fronts.length || this.twinkling) this.kick();
     else this.last = 0;
   };
 
@@ -331,19 +280,13 @@ export class LightField {
     for (let i = 0; i < this.cols * this.rows; i++) {
       const light = this.light[i];
       if (light > 0) lit = true;
-      if (Math.abs(light - this.paintedLight[i]) < 0.008 && this.veiled[i] === this.paintedVeil[i]) continue;
+      if (Math.abs(light - this.paintedLight[i]) < 0.008) continue;
       this.paintedLight[i] = light;
-      this.paintedVeil[i] = this.veiled[i];
       const x = this.ox + (i % this.cols) * GRID;
       const y = this.oy + Math.floor(i / this.cols) * GRID;
       ctx.clearRect(x, y, GRID, GRID);
-      if (this.veiled[i]) {
-        // Even, not textured: per-block variation read as a tiled mesh over bright skies.
-        ctx.fillStyle = `rgb(16 12 10 / ${this.alpha.toFixed(3)})`;
-        ctx.fillRect(x, y, GRID, GRID);
-      }
       if (light > 0) {
-        ctx.fillStyle = `rgb(${this.colors[this.colorOf[i]]} / ${Math.min(0.92, light).toFixed(3)})`;
+        ctx.fillStyle = `rgb(${this.colors[this.colorOf[i]]} / ${Math.min(0.8, light).toFixed(3)})`;
         ctx.fillRect(x + inset, y + inset, PIXEL, PIXEL);
       }
     }
