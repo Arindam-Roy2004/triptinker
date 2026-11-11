@@ -147,7 +147,7 @@ export function PromptCard({
         <label htmlFor={id} className="sr-only">
           {label}
         </label>
-        <div className={cn('relative', size === 'hero' ? 'min-h-20 md:min-h-12' : 'min-h-10')}>
+        <div className={cn('relative', size === 'hero' ? 'min-h-22 md:min-h-12' : 'min-h-10')}>
           <textarea
             id={id}
             ref={localRef}
