@@ -27,9 +27,11 @@ export function Logo({ compact = false }: { compact?: boolean }) {
 /** Floating glass bar: transparent at rest, it condenses into a blurred pill on scroll. */
 export function SiteHeader({ children }: { children: ReactNode }) {
   const { scrollY } = useScroll();
-  const [scrolled, setScrolled] = useState(() => window.scrollY > 12);
+  const [scrolled, setScrolled] = useState(() => window.scrollY > 24);
   const reduce = useReducedMotion();
-  useMotionValueEvent(scrollY, 'change', (y) => setScrolled(y > 12));
+  // Condense past 24px, expand again only near the very top: a gap between the two, so iOS's
+  // rubber-band bounce around one threshold can't make the bar flicker between states.
+  useMotionValueEvent(scrollY, 'change', (y) => setScrolled((was) => (was ? y > 4 : y > 24)));
   return (
     <header className="sticky top-0 z-40 px-3 pt-3">
       <motion.div
