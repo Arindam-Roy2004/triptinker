@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { SCENES } from '../../apps/frontend/src/features/scenes/scenes';
 
 const BRIEF = 'Three days in Lisbon with trams, tiles and seafood.';
 
@@ -123,7 +124,7 @@ test('hero preload matches React and neighboring scenes are loaded before naviga
   const preload = page.locator('link[rel="preload"][as="image"]');
   await expect(preload).toHaveAttribute('imagesrcset', (await hero.getAttribute('srcset'))!);
   await expect(preload).toHaveAttribute('imagesizes', (await hero.getAttribute('sizes'))!);
-  const nextId = (visit + 1) % 10 + 1;
+  const nextId = (visit + 1) % SCENES.length + 1;
   const requestsForNext = () => page.evaluate((id) => performance.getEntriesByType('resource').filter((entry) => entry.name.includes(`/scenes/scene-${id}-`)).length, nextId);
   await expect.poll(requestsForNext).toBe(1);
   await page.getByRole('button', { name: 'Next scene', exact: true }).click();
@@ -131,7 +132,7 @@ test('hero preload matches React and neighboring scenes are loaded before naviga
   expect(await requestsForNext()).toBe(1);
   await page.reload();
   await expect(hero).toHaveAttribute('src', `/scenes/scene-${nextId}-1920.webp`);
-  expect(await page.evaluate(() => localStorage.getItem('triptinker:scene-visit'))).toBe(String((visit + 1) % 10));
+  expect(await page.evaluate(() => localStorage.getItem('triptinker:scene-visit'))).toBe(String((visit + 1) % SCENES.length));
 });
 
 test('reduced motion switches decoded scenes without a canvas dissolve', async ({ page }) => {
@@ -142,7 +143,7 @@ test('reduced motion switches decoded scenes without a canvas dissolve', async (
   const canvas = page.locator('#scene canvas').first();
   const initialWidth = await canvas.evaluate((el: HTMLCanvasElement) => el.width);
   await page.getByRole('button', { name: 'Next scene', exact: true }).click();
-  await expect(hero).toHaveAttribute('src', `/scenes/scene-${(visit + 1) % 10 + 1}-1920.webp`);
+  await expect(hero).toHaveAttribute('src', `/scenes/scene-${(visit + 1) % SCENES.length + 1}-1920.webp`);
   await expect.poll(() => hero.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
   expect(await canvas.evaluate((el: HTMLCanvasElement) => el.width)).toBe(initialWidth);
 });

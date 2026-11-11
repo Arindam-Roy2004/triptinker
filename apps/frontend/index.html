@@ -31,7 +31,7 @@
         var visit = 0;
         try {
           var previous = Number.parseInt(localStorage.getItem('triptinker:scene-visit') ?? localStorage.getItem('roamfar:scene-visit') ?? '-1', 10);
-          if (Number.isFinite(previous) && previous >= -1) visit = ((previous % 10) + 1) % 10;
+          if (Number.isFinite(previous) && previous >= -1) visit = ((previous % 14) + 1) % 14;
         } catch (e) {}
         document.documentElement.dataset.sceneVisit = String(visit);
         var base = '/scenes/scene-' + (visit + 1);

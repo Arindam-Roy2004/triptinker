@@ -1,6 +1,6 @@
 /**
  * The scene library: pixel-art wonders shown behind the prompt. Every visit steps to the
- * next one (both themes use all ten), and a generated destination with a matching scene
+ * next one (both themes use the full library), and a generated destination with a matching scene
  * switches to it.
  */
 
@@ -24,6 +24,10 @@ export const SCENES: Scene[] = [
   { id: 8, name: 'Colosseum', place: 'Rome, Italy', time: 'night', match: ['rome', 'roma', 'italy', 'italia', 'florence', 'venice'] },
   { id: 9, name: 'Taj Mahal', place: 'Agra, India', time: 'night', match: ['agra', 'taj mahal', 'india', 'delhi', 'jaipur', 'rajasthan'] },
   { id: 10, name: 'Cascade Volcano', place: 'Pacific Northwest', time: 'day', match: ['oregon', 'washington state', 'seattle', 'portland', 'rainier', 'mount hood', 'cascades'] },
+  { id: 11, name: 'Machu Picchu', place: 'Cusco Region, Peru', time: 'day', match: ['machu picchu', 'cusco', 'cuzco', 'sacred valley', 'peru', 'perú'] },
+  { id: 12, name: 'Great Wall', place: 'China', time: 'day', match: ['great wall', 'beijing', 'mutianyu', 'badaling', 'china'] },
+  { id: 13, name: 'Petra', place: 'Ma’an, Jordan', time: 'night', match: ['petra', 'wadi musa', 'jordan'] },
+  { id: 14, name: 'Mount Fuji', place: 'Yamanashi, Japan', time: 'night', match: ['mount fuji', 'fuji', 'kawaguchiko', 'yamanashi', 'japan', 'tokyo', 'kyoto'] },
 ];
 
 export const sceneSrc = (scene: Scene, width: 960 | 1920) => `/scenes/scene-${scene.id}-${width}.webp`;
