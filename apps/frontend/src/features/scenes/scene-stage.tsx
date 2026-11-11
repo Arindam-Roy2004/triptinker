@@ -238,7 +238,8 @@ export function SceneStage({
 
   return (
     <div ref={frameRef} className={cn('relative isolate overflow-hidden bg-[#2b3a3a]', className)}>
-      <div className="pointer-events-none absolute inset-0 animate-drift will-change-transform" aria-hidden>
+      {/* No drift on phones: slowly scaling crisp pixel art on a 3x screen makes every edge jitter. */}
+      <div className="pointer-events-none absolute inset-0 sm:animate-drift sm:will-change-transform" aria-hidden>
         <img
           key={shown.id}
           src={sceneSrc(shown, 1920)}
