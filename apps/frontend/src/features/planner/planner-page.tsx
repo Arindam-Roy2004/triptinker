@@ -127,7 +127,7 @@ export function PlannerPage() {
         <GuideLine frame="below" />
         <div id="scene" className="scroll-mt-20 overflow-hidden rounded-md shadow-lift">
           {/* The card sits in the lower part of the scene, leaving the landmark visible above it. */}
-          <SceneStage scene={scene.scene} transition={scene.transition} dim={generating} onReveal={setRevealed} className="flex min-h-[520px] flex-col items-center justify-end px-4 pt-36 pb-16 md:min-h-[540px] md:pb-20">
+          <SceneStage scene={scene.scene} transition={scene.transition} dim={generating} onReveal={setRevealed} className="flex min-h-[520px] flex-col items-center justify-end px-4 pt-36 pb-4 sm:pb-16 md:min-h-[540px] md:pb-20">
             <div className="relative z-10 flex w-full max-w-2xl flex-col items-center gap-2">
               <PromptCard
                 inputRef={promptRef}
@@ -173,7 +173,7 @@ export function PlannerPage() {
               position={{ index: SCENES.findIndex((s) => s.id === revealed.id), total: SCENES.length }}
               onPrev={scene.prev}
               onNext={scene.next}
-              className="absolute right-4 bottom-4 z-10 max-w-[calc(100%-2rem)]"
+              className="relative z-10 mt-4 max-w-full sm:absolute sm:right-4 sm:bottom-4 sm:mt-0 sm:max-w-[calc(100%-2rem)]"
             />
           </SceneStage>
           <AnimatePresence mode="wait" initial={false}>
