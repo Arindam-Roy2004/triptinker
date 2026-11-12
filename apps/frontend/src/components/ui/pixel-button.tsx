@@ -169,9 +169,10 @@ function PixelSurface() {
 }
 
 /** Opt-in treatment for actions on completed AI results, never the page header. */
-export function PixelButton({ children, className, disabled, ...props }: Omit<ComponentProps<typeof Button>, 'asChild'>) {
+export function PixelButton({ children, className, disabled, variant, ...props }: Omit<ComponentProps<typeof Button>, 'asChild'>) {
   return (
-    <Button {...props} disabled={disabled} className={cn('overflow-hidden', className)}>
+    // The primary state takes Aceternity's Pixel Prompt surface in light mode (see .pixel-prompt).
+    <Button {...props} variant={variant} disabled={disabled} className={cn('overflow-hidden rounded-full', variant === 'primary' && 'pixel-prompt', className)}>
       {!disabled && <PixelSurface />}
       <span className="relative inline-flex items-center justify-center gap-2">{children}</span>
     </Button>
