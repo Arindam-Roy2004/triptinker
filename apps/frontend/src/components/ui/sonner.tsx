@@ -24,7 +24,7 @@ function Toaster(props: ToasterProps) {
           actionButton: '!rounded-lg !bg-ink-strong !text-bg !font-sans !uppercase !text-[11px] !font-semibold',
         },
       }}
-      style={{ '--normal-bg': 'var(--surface)', '--normal-text': 'var(--ink)', '--normal-border': 'var(--line)', '--border-radius': '12px' } as React.CSSProperties}
+      style={{ '--normal-bg': 'var(--float)', '--normal-text': 'var(--ink)', '--normal-border': 'var(--line)', '--border-radius': '12px' } as React.CSSProperties}
       {...props}
     />
   );
