@@ -1,4 +1,4 @@
-import { ArrowClockwise, ArrowCounterClockwise, BookmarkSimple, Check, Copy, DownloadSimple, FileText, GlobeSimple, Info, Plus, Printer, Sun } from '@phosphor-icons/react';
+import { ArrowClockwise, ArrowCounterClockwise, Copy, DownloadSimple, FileText, GlobeSimple, Info, Plus, Printer, Sun } from '@phosphor-icons/react';
 import { AnimateIcon } from '@animate-ui/react/icons';
 import { Cancel01 } from '@/components/animate-ui/icons/hugeicons/cancel-01';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -9,6 +9,7 @@ import { ShimmerLabel } from '@/components/ai/shimmer';
 import { Button } from '@/components/ui/button';
 import { PixelFill } from '@/components/ui/pixel-fill';
 import { PixelButton } from '@/components/ui/pixel-button';
+import { SaveLabel } from './save-label';
 import { PulseLine, WordsIn } from '@/components/ui/pulse-line';
 import { Reveal } from '@/components/ui/reveal';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -313,8 +314,8 @@ export function ResultSection(props: Props) {
             <ArrowClockwise />
           </IconButton>
           <DownloadMenu onExport={props.onExport} />
-          <PixelButton variant={props.saved ? 'secondary' : 'primary'} onClick={props.onSave} disabled={locked || props.saved} className="flex-1 lg:flex-none">
-            {props.saved ? <Check /> : <BookmarkSimple />} {props.saved ? 'Saved' : 'Save trip'}
+          <PixelButton variant={props.saved ? 'secondary' : 'primary'} onClick={props.onSave} disabled={locked || props.saved} aria-label={props.saved ? 'Saved' : 'Save trip'} className="flex-1 lg:flex-none">
+            <SaveLabel saved={props.saved} />
           </PixelButton>
         </Reveal>
       </div>
