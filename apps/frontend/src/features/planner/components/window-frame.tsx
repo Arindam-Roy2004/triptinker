@@ -4,8 +4,8 @@ import { cn } from '@/lib/utils';
 /** An app window — three quiet dots, a title, an optional action — floated over a scene or a crosshatched cell. */
 export function WindowFrame({ title, action, children, className, bodyClassName }: { title?: ReactNode; action?: ReactNode; children: ReactNode; className?: string; bodyClassName?: string }) {
   return (
-    <div className={cn('flex min-h-0 flex-col overflow-hidden rounded-md bg-surface shadow-lift', className)}>
-      <div className="flex h-10 shrink-0 items-center gap-3 border-b border-line px-3">
+    <div className={cn('flex min-h-0 flex-col overflow-hidden rounded-md bg-raised shadow-lift', className)}>
+      <div className="flex h-10 shrink-0 items-center gap-3 border-b border-line bg-tray/70 px-3">
         <span className="flex gap-1.5" aria-hidden>
           <span className="size-2.5 rounded-full bg-[#FF5F57] shadow-[inset_0_0_0_0.5px_rgb(0_0_0/0.12)]" />
           <span className="size-2.5 rounded-full bg-[#FEBC2E] shadow-[inset_0_0_0_0.5px_rgb(0_0_0/0.12)]" />
