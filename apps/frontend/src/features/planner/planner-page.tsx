@@ -1,9 +1,9 @@
 import { ArrowRight, Plus } from '@phosphor-icons/react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useIsPresent, useReducedMotion, type HTMLMotionProps } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { LIMITS } from '@triptinker/contracts';
 import { COLUMN, GuideLine, GuideRails } from '@/components/site/guides';
-import { HeroGlow } from '@/components/site/hero-glow';
+import { HeroClouds, HeroGlow } from '@/components/site/hero-glow';
 import { SiteHeader } from '@/components/site/site-header';
 import { ThemeToggle } from '@/components/site/theme-toggle';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -27,6 +27,8 @@ const EXAMPLES = [
   { label: 'Rainy Edinburgh', brief: 'Two days in Edinburgh in February that still work if it rains all day. History, cosy pubs, one whisky tasting, no hiking.' },
   { label: 'Food in Rome', brief: 'Three days in Rome for people who travel to eat: markets, trattorias, a cooking class, and one big sight a day.' },
 ];
+
+const EXAMPLE_BRIEFS = EXAMPLES.map((e) => e.brief);
 
 /** Frosted chip over the scene, for the example briefs and the sample. */
 const CHIP = 'glass-card h-8 rounded-lg px-3 text-[13px] font-medium text-ink transition-[background-color,transform] hover:bg-surface active:scale-95 disabled:opacity-60';
@@ -103,7 +105,9 @@ export function PlannerPage() {
       </SiteHeader>
 
       <main className={cn(COLUMN, 'flex-1')}>
-        {/* Hero */}
+        {/* Hero, under the clouds: they fill this band and fade out at the scene's top rule (light mode). */}
+        <div className="relative">
+        <HeroClouds />
         <section aria-labelledby="hero-title" className="flex flex-col items-center gap-6 pt-8 pb-10 text-center sm:pt-10 md:pb-12">
           <div className="flex flex-col gap-4">
             <h1 id="hero-title" className="font-display text-[clamp(1.5rem,calc((100vw-2rem)*0.1),2.625rem)] leading-[1.06] text-ink-strong sm:text-[56px] lg:text-[68px] lg:leading-[1.06]">
@@ -122,6 +126,7 @@ export function PlannerPage() {
             </Button>
           </div>
         </section>
+        </div>
 
         {/* Scene, prompt and status strip, framed by guide lines 12px off its edges */}
         <GuideLine frame="below" />
@@ -138,7 +143,7 @@ export function PlannerPage() {
                 onSubmit={generate}
                 onStop={stopPlanning}
                 running={generating}
-                typed={EXAMPLES.map((e) => e.brief)}
+                typed={EXAMPLE_BRIEFS}
                 minLength={LIMITS.briefMin}
                 maxLength={LIMITS.briefMax}
                 options={{ days: form.days, pace: form.pace }}
@@ -186,7 +191,7 @@ export function PlannerPage() {
             vanishing; showing it needs no wrapper entrance, as the section builds itself in. */}
         <AnimatePresence initial={false}>
         {trip && (
-          <motion.div
+          <Leaving
             key="trip"
             initial={false}
             exit={reduce ? { opacity: 0, transition: { duration: 0.15 } } : { opacity: 0, y: 24, scale: 0.985, filter: 'blur(8px)', transition: { duration: 0.36, ease: [0.22, 1, 0.36, 1] } }}
@@ -236,7 +241,7 @@ export function PlannerPage() {
               </ResultSection>
             </div>
             <GuideLine frame="above" />
-          </motion.div>
+          </Leaving>
         )}
         </AnimatePresence>
       </main>
@@ -273,4 +278,11 @@ export function PlannerPage() {
       </AlertDialog>
     </div>
   );
+}
+
+/** A motion block that goes inert and silent the moment it starts animating out, so a section
+ *  that is leaving can't take focus or be read twice alongside what replaces it. */
+function Leaving(props: HTMLMotionProps<'div'>) {
+  const present = useIsPresent();
+  return <motion.div {...props} inert={!present} aria-hidden={present ? undefined : true} />;
 }
