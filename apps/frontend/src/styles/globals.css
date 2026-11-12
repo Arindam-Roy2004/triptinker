@@ -173,10 +173,15 @@
   --line: #e7e5e4;
   --line-strong: #d6d3d1;
 
-  --brand: #0f6e68;
-  --brand-ring: #0a5550;
-  --brand-ink: #fafaf9;
-  --brand-wash: #e7f0ee;
+  /*
+   * Light mode's brand is the blue of its primary buttons (Aceternity's "Browse Components"), so
+   * every accent matches them: #1c54d6 is the button's own lower edge (6.4:1 on white, as legible
+   * as the teal was), the ring its ring. Dark mode keeps the teal, matching its teal buttons.
+   */
+  --brand: #1c54d6;
+  --brand-ring: #1a4bc2;
+  --brand-ink: #ffffff;
+  --brand-wash: #e8efff;
   --signal: lab(64.272% 57.1788 90.3583);
   --signal-ring: lab(57.1026% 64.2584 89.8886);
   --signal-text: lab(57.1026% 64.2584 89.8886);
@@ -190,7 +195,7 @@
   --err: #c2412d;
   --err-wash: #f9ebe8;
 
-  --syn-key: #0f6e68;
+  --syn-key: #1c54d6;
   --syn-string: #8a5a2b;
   --syn-number: #4f46a5;
   --syn-literal: #b5651d;
@@ -199,7 +204,7 @@
   /* Crosshatch lines for recessed cells that windows float on. */
   --pattern: rgb(28 25 23 / 0.075);
   /* the light band that sweeps across brand eyebrows */
-  --shimmer-light: #7fd0c4;
+  --shimmer-light: #9dbcff;
   --lift: 0 0 0 1px var(--edge-card), 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   --elevated: 0 24px 40px -20px rgb(38 38 43 / 0.3), 0 10px 24px 0 rgb(38 38 43 / 0.06), 0 1px 1px 0 rgb(38 38 43 / 0.16), 0 0 0 1px rgb(38 38 43 / 0.05), 0 8px 14px -10px rgb(38 38 43 / 0.4);
   --keycap: 0 0.5px 0.5px 0 rgb(0 0 0 / 0.1), inset 0 0.5px 0 0 #fff;
@@ -512,7 +517,7 @@
  * Vibrant's button surface (vibrant.design, .t-surface), ported as-is: the surface lives on a
  * ::before so a press can scale it without moving the label. Each variant only sets colours:
  * a top-to-bottom body, a light-to-dark 1px edge, a ring, a soft inner shade and two drops.
- * Colours are TripTinker's (teal brand, ochre signal, warm neutrals); the recipe is Vibrant's.
+ * Colours are TripTinker's (blue brand in light mode, teal in dark, warm neutrals); the recipe is Vibrant's.
  */
 @property --surface-top {
   syntax: '<color>';
@@ -581,7 +586,7 @@
   scale: 0.985;
 }
 
-/* Primary: TripTinker teal */
+/* Primary: Aceternity blue in light mode, TripTinker teal in dark */
 /* Primary, light mode: Aceternity's own primary ("Browse Components" on ui.aceternity.com),
    value for value, to sit with the sky backdrop. Dark mode keeps the teal below. */
 .t-surface-primary::before {
