@@ -14,35 +14,91 @@ export type TripOptions = { days: number | null; pace: Pace };
 
 const PACE_LABEL: Record<Pace, string> = { relaxed: 'Relaxed', balanced: 'Balanced', packed: 'Full days' };
 
-/** Types and deletes example prompts into the empty field, like someone thinking out loud. */
-function useTypewriter(lines: string[], enabled: boolean) {
-  const [text, setText] = useState('');
+type Ghost = { text: string; line: number; typing: boolean; fading: boolean };
+
+const TYPE_MS = 34; // per character, with a little jitter so it doesn't tick like a metronome
+const HOLD_MS = 2600; // a finished example stays long enough to read
+const FADE_MS = 320; // then it fades out, rather than being backspaced
+const RESUME_MS = 1400; // after a hover ends, the held example lingers a beat before moving on
+
+/**
+ * Shows example prompts in the empty field, politely: each is typed once at a natural pace, held,
+ * and faded out. Pausing (hover) completes the current example at once and holds it, so it never
+ * freezes mid-word. After one pass through the examples it settles on the first as a static
+ * placeholder. Progress survives pauses and re-renders; only `enabled` turning off hides it.
+ */
+function useTypewriter(lines: string[], enabled: boolean, paused: boolean): Ghost {
+  const [ghost, setGhost] = useState<Ghost>({ text: '', line: 0, typing: false, fading: false });
+  const pos = useRef({ line: 0, i: 0, settled: false });
+  const key = lines.join('\n'); // content, not identity: a new array with the same examples is the same set
+
   useEffect(() => {
     if (!enabled || !lines.length) return;
-    let line = 0;
-    let i = 0;
-    let deleting = false;
-    let timer: ReturnType<typeof setTimeout>;
-    const tick = () => {
-      const current = lines[line];
-      i += deleting ? -3 : 1;
-      i = Math.max(0, Math.min(current.length, i));
-      setText(current.slice(0, i));
-      let delay = deleting ? 14 : 32;
-      if (!deleting && i === current.length) {
-        deleting = true;
-        delay = 2200;
-      } else if (deleting && i === 0) {
-        deleting = false;
-        line = (line + 1) % lines.length;
-        delay = 400;
+    const p = pos.current;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const show = (patch: Partial<Ghost>) => setGhost((prev) => ({ ...prev, line: p.line, ...patch }));
+    const full = () => lines[p.line] ?? '';
+
+    if (p.settled || paused) {
+      p.i = full().length;
+      show({ text: full(), typing: false, fading: false });
+      return;
+    }
+
+    const type = () => {
+      const line = full();
+      if (p.i < line.length) {
+        p.i += 1;
+        show({ text: line.slice(0, p.i), typing: true, fading: false });
+        timer = setTimeout(type, TYPE_MS + Math.random() * 30);
+        return;
       }
-      timer = setTimeout(tick, delay);
+      show({ typing: false });
+      timer = setTimeout(fade, HOLD_MS);
     };
-    timer = setTimeout(tick, 700);
+    const fade = () => {
+      show({ fading: true });
+      timer = setTimeout(() => {
+        const last = p.line === lines.length - 1;
+        p.line = (p.line + 1) % lines.length;
+        if (last) {
+          // One full pass: settle on the first example, shown whole and still.
+          p.settled = true;
+          p.i = full().length;
+          show({ text: full(), typing: false, fading: false });
+          return;
+        }
+        p.i = 0;
+        show({ text: '', typing: false, fading: false });
+        timer = setTimeout(type, 260);
+      }, FADE_MS);
+    };
+
+    const done = p.i >= full().length && p.i > 0;
+    timer = setTimeout(done ? fade : type, done ? RESUME_MS : p.i === 0 ? 700 : TYPE_MS);
     return () => clearTimeout(timer);
-  }, [lines, enabled]);
-  return enabled ? text : '';
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands in for `lines`
+  }, [key, enabled, paused]);
+
+  return enabled ? ghost : { ...ghost, text: '' };
+}
+
+/** True while `element` is on screen and the tab is visible: no point typing to nobody. */
+function useOnScreen(element: RefObject<HTMLElement | null>) {
+  const [inView, setInView] = useState(true);
+  const [tabVisible, setTabVisible] = useState(() => document.visibilityState === 'visible');
+  useEffect(() => {
+    const el = element.current;
+    const onVisibility = () => setTabVisible(document.visibilityState === 'visible');
+    document.addEventListener('visibilitychange', onVisibility);
+    const observer = el ? new IntersectionObserver(([entry]) => setInView(entry.isIntersecting)) : null;
+    if (el) observer?.observe(el);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      observer?.disconnect();
+    };
+  }, [element]);
+  return inView && tabVisible;
 }
 
 type Props = {
@@ -95,7 +151,11 @@ export function PromptCard({
   const [listening, setListening] = useState(false);
   const localRef = useRef<HTMLTextAreaElement | null>(null);
   const id = useId();
-  const ghost = useTypewriter(typed, !value && !focused && !reduce && !running && !listening);
+  const [hovered, setHovered] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const onScreen = useOnScreen(formRef);
+  const fieldHeight = size === 'hero' ? 'min-h-22 md:min-h-12' : 'min-h-10';
+  const ghost = useTypewriter(typed, !value && !focused && !reduce && !running && !listening && onScreen, hovered);
   const ghostRef = useRef<HTMLSpanElement>(null);
 
   // The example can be longer than the box on a narrow phone. Scroll it like a real field would, so
@@ -105,7 +165,7 @@ export function PromptCard({
     if (!el) return;
     el.scrollTop = el.scrollHeight;
     el.toggleAttribute('data-clipped', el.scrollTop > 0);
-  }, [ghost]);
+  }, [ghost.text]);
 
   useImperativeHandle(inputRef, () => localRef.current as HTMLTextAreaElement, []);
 
@@ -128,13 +188,25 @@ export function PromptCard({
   return (
     <div className={cn('w-full', className)}>
       <form
+        ref={formRef}
+        // A mouse over the card holds the example still; touch has no hover, and a tap focuses the field.
+        onPointerEnter={(e) => e.pointerType === 'mouse' && setHovered(true)}
+        onPointerLeave={() => setHovered(false)}
+        // A press on any empty part of the card (its padding, the space beside the options or
+        // "Enter to send") goes to the field, as in a chat composer. Controls keep their own clicks.
+        onMouseDown={(event) => {
+          const target = event.target as HTMLElement;
+          if (target === localRef.current || target.closest('button, a, input, textarea, select, label, [role="button"], [role="radiogroup"], [data-radix-popper-content-wrapper]')) return;
+          event.preventDefault();
+          localRef.current?.focus();
+        }}
         onSubmit={(e) => {
           e.preventDefault();
           submit();
         }}
         onAnimationEnd={() => setShaking(false)}
         className={cn(
-          'relative flex flex-col gap-3 rounded-md bg-surface px-4 pt-4 pb-3 shadow-elevated transition-[box-shadow] duration-300',
+          'relative flex flex-col gap-3 rounded-md bg-raised px-4 pt-4 pb-3 shadow-elevated transition-[box-shadow] duration-300',
           shaking && !reduce && 'animate-shake',
           // Typing: the full signal ring and a soft wash. Planning: a faint track that the dashes run along.
           running
@@ -147,7 +219,7 @@ export function PromptCard({
         <label htmlFor={id} className="sr-only">
           {label}
         </label>
-        <div className={cn('relative', size === 'hero' ? 'min-h-22 md:min-h-12' : 'min-h-10')}>
+        <div className={cn('relative', fieldHeight)}>
           <textarea
             id={id}
             ref={localRef}
@@ -162,17 +234,24 @@ export function PromptCard({
             maxLength={maxLength}
             rows={size === 'hero' ? 2 : 1}
             aria-invalid={!!error}
-            placeholder={reduce || focused ? typed[0] : ''}
-            className="block max-h-48 w-full resize-none bg-transparent text-base leading-[22px] text-ink outline-none [field-sizing:content] placeholder:text-subtle focus-visible:outline-none"
+            // Focusing keeps the example that was showing, so the text doesn't swap under the caret.
+            placeholder={reduce || focused ? (typed[ghost.line] ?? typed[0]) : ''}
+            // As tall as its area, so a click anywhere on the example text lands in the field.
+            className={cn('block max-h-48 w-full resize-none bg-transparent text-base leading-[22px] text-ink outline-none [field-sizing:content] placeholder:text-subtle focus-visible:outline-none', fieldHeight)}
           />
           {!value && !focused && !reduce && !listening && (
             <span
               ref={ghostRef}
-              className="pointer-events-none absolute inset-0 overflow-hidden text-base leading-[22px] text-ink data-clipped:[mask-image:linear-gradient(to_bottom,transparent,black_22px)]"
+              // Placeholder grey, so it is never mistaken for the traveller's own words.
+              className={cn(
+                'pointer-events-none absolute inset-0 overflow-hidden text-base leading-[22px] text-subtle transition-opacity duration-300 data-clipped:[mask-image:linear-gradient(to_bottom,transparent,black_22px)]',
+                ghost.fading && 'opacity-0',
+              )}
               aria-hidden
             >
-              {ghost}
-              <span className="ml-0.5 inline-block h-4 w-px animate-caret bg-ink align-middle" />
+              {ghost.text}
+              {/* The caret only while it is typing: a held or settled example is just a placeholder. */}
+              {ghost.typing && <span className="ml-0.5 inline-block h-4 w-px animate-caret bg-subtle align-middle" />}
             </span>
           )}
         </div>
@@ -202,7 +281,7 @@ export function PromptCard({
                   type="button"
                   onClick={onStop}
                   aria-label="Stop generating"
-                  className="grid size-8 place-items-center rounded-xl border border-signal bg-surface text-signal-text transition-[transform,background-color] hover:bg-signal/10 active:scale-95"
+                  className="grid size-8 place-items-center rounded-xl border border-signal bg-raised text-signal-text transition-[transform,background-color] hover:bg-signal/10 active:scale-95"
                 >
                   <Cancel01 size={15} aria-hidden />
                 </button>
@@ -252,7 +331,7 @@ function TripOptionsControl({ options, onChange, disabled }: { options: TripOpti
               aria-label="Fewer days"
               disabled={options.days === null}
               onClick={() => onChange({ ...options, days: options.days && options.days > 1 ? options.days - 1 : null })}
-              className="grid size-7 place-items-center rounded-lg transition-[background-color,box-shadow] hover:bg-surface hover:shadow-chip disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:shadow-none"
+              className="grid size-7 place-items-center rounded-lg transition-[background-color,box-shadow] hover:bg-surface hover:shadow-chip dark:hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:shadow-none"
             >
               <Minus size={14} />
             </button>
@@ -264,7 +343,7 @@ function TripOptionsControl({ options, onChange, disabled }: { options: TripOpti
               aria-label="More days"
               disabled={options.days === LIMITS.maxDays}
               onClick={() => onChange({ ...options, days: options.days === null ? 3 : Math.min(LIMITS.maxDays, options.days + 1) })}
-              className="grid size-7 place-items-center rounded-lg transition-[background-color,box-shadow] hover:bg-surface hover:shadow-chip disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:shadow-none"
+              className="grid size-7 place-items-center rounded-lg transition-[background-color,box-shadow] hover:bg-surface hover:shadow-chip dark:hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:shadow-none"
             >
               <Plus size={14} />
             </button>
@@ -280,7 +359,7 @@ function TripOptionsControl({ options, onChange, disabled }: { options: TripOpti
                 role="radio"
                 aria-checked={options.pace === pace}
                 onClick={() => onChange({ ...options, pace })}
-                className={cn('label h-7 rounded-lg text-[11px] transition-colors', options.pace === pace ? 'bg-surface text-ink shadow-control' : 'text-muted hover:text-ink')}
+                className={cn('label h-7 rounded-lg text-[11px] transition-colors', options.pace === pace ? 'bg-surface text-ink shadow-control dark:bg-white/10' : 'text-muted hover:text-ink')}
               >
                 {PACE_LABEL[pace]}
               </button>
