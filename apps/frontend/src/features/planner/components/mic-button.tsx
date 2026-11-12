@@ -29,6 +29,8 @@ export function MicButton({ onText, disabled, size = 8, onActiveChange }: Props)
   const voice = useVoiceInput(onText);
   const recording = voice.state === 'recording';
   const busy = voice.state === 'transcribing';
+  /** The browser's permission prompt is open; a second press would only queue another one. */
+  const asking = voice.state === 'requesting';
   const { cancel } = voice;
   const active = recording || busy;
   useEffect(() => onActiveChange?.(active), [active, onActiveChange]);
@@ -41,7 +43,7 @@ export function MicButton({ onText, disabled, size = 8, onActiveChange }: Props)
     return () => window.removeEventListener('keydown', onKey);
   }, [recording, cancel]);
 
-  const label = recording ? 'Stop recording' : busy ? 'Transcribing' : 'Speak your request';
+  const label = recording ? 'Stop recording' : busy ? 'Transcribing' : asking ? 'Waiting for the microphone' : 'Speak your request';
   const fade = reduce ? { initial: false, animate: { opacity: 1 }, exit: { opacity: 0 } } : { initial: { opacity: 0, x: 8, filter: 'blur(4px)' }, animate: { opacity: 1, x: 0, filter: 'blur(0px)' }, exit: { opacity: 0, x: 8, filter: 'blur(4px)' } };
 
   return (
@@ -65,10 +67,10 @@ export function MicButton({ onText, disabled, size = 8, onActiveChange }: Props)
       <button
         type="button"
         onClick={recording ? voice.stop : () => void voice.start()}
-        disabled={(disabled && !recording) || busy}
+        disabled={(disabled && !recording) || busy || asking}
         aria-label={label}
         aria-pressed={recording}
-        title={recording ? 'Stop recording (Esc to discard)' : busy ? undefined : 'Speak your request'}
+        title={recording ? 'Stop recording (Esc to discard)' : busy || asking ? undefined : 'Speak your request'}
         className={cn(
           'relative grid shrink-0 place-items-center rounded-lg border transition-[background-color,color,border-color,transform] duration-200 active:scale-95 disabled:opacity-60',
           size === 9 ? 'size-9' : 'size-8',
@@ -90,7 +92,7 @@ export function MicButton({ onText, disabled, size = 8, onActiveChange }: Props)
           ))}
         <AnimatePresence mode="popLayout" initial={false}>
           <motion.span
-            key={voice.state}
+            key={recording ? 'stop' : busy ? 'busy' : 'mic'}
             className="relative grid place-items-center"
             initial={reduce ? false : { scale: 0.4, opacity: 0, rotate: -45, filter: 'blur(2px)' }}
             animate={{ scale: 1, opacity: 1, rotate: 0, filter: 'blur(0px)' }}

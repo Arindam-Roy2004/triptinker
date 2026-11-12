@@ -3,7 +3,8 @@ import { toast } from 'sonner';
 import { toSpeechWav } from '@/lib/wav';
 import { transcribe } from './api';
 
-export type VoiceState = 'idle' | 'recording' | 'transcribing';
+/** idle → requesting (permission prompt) → recording → transcribing → idle; cancel returns to idle from any of them. */
+export type VoiceState = 'idle' | 'requesting' | 'recording' | 'transcribing';
 
 /** Long enough for a full trip brief; short enough to keep the upload under 2 MB. */
 export const MAX_RECORDING_MS = 60_000;
@@ -25,6 +26,13 @@ function micError(error: unknown) {
  */
 export function useVoiceInput(onText: (text: string) => void) {
   const [state, setState] = useState<VoiceState>('idle');
+  /** Mirrors `state` synchronously, so a second press during an await sees the real phase. */
+  const phase = useRef<VoiceState>('idle');
+  /**
+   * Identifies the current recording. Cancel and unmount bump it, so any await that resumes for
+   * an older recording sees a different id and stops instead of acting on a session that is gone.
+   */
+  const op = useRef(0);
   const [startedAt, setStartedAt] = useState(0);
   /** Live level of the microphone while recording, for the waveform. */
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
@@ -33,11 +41,15 @@ export function useVoiceInput(onText: (text: string) => void) {
   const stream = useRef<MediaStream | null>(null);
   const request = useRef<AbortController | null>(null);
   const limit = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const discard = useRef(false);
   const onTextRef = useRef(onText);
   useEffect(() => {
     onTextRef.current = onText;
   }, [onText]);
+
+  const enter = useCallback((next: VoiceState) => {
+    phase.current = next;
+    setState(next);
+  }, []);
 
   const release = useCallback(() => {
     clearTimeout(limit.current);
@@ -49,56 +61,71 @@ export function useVoiceInput(onText: (text: string) => void) {
     setAnalyser(null);
   }, []);
 
-  const finish = useCallback(async (chunks: Blob[], type: string, durationMs: number) => {
-    if (discard.current) return setState('idle');
-    if (durationMs < MIN_RECORDING_MS) {
-      toast('Hold on a little longer', { description: 'Press the microphone, speak, then press it again to stop.' });
-      return setState('idle');
-    }
-    setState('transcribing');
-    const controller = new AbortController();
-    request.current = controller;
-    try {
-      const wav = await toSpeechWav(new Blob(chunks, { type }));
-      const text = await transcribe(wav, controller.signal);
-      if (controller.signal.aborted) return;
-      if (text) onTextRef.current(text);
-      else toast('Didn’t catch that', { description: 'Try again a little closer to the microphone.' });
-    } catch (error) {
-      if (controller.signal.aborted) return;
-      toast.error('Voice input failed', { description: error instanceof Error && error.message ? error.message : 'Type your request instead.' });
-    } finally {
-      if (request.current === controller) {
-        request.current = null;
-        setState('idle');
+  const finish = useCallback(
+    async (id: number, chunks: Blob[], type: string, durationMs: number) => {
+      if (durationMs < MIN_RECORDING_MS) {
+        toast('Hold on a little longer', { description: 'Press the microphone, speak, then press it again to stop.' });
+        return enter('idle');
       }
-    }
-  }, []);
+      enter('transcribing');
+      const controller = new AbortController();
+      request.current = controller;
+      try {
+        const wav = await toSpeechWav(new Blob(chunks, { type }));
+        const text = await transcribe(wav, controller.signal);
+        if (op.current !== id) return;
+        if (text) onTextRef.current(text);
+        else toast('Didn’t catch that', { description: 'Try again a little closer to the microphone.' });
+      } catch (error) {
+        if (op.current !== id) return;
+        toast.error('Voice input failed', { description: error instanceof Error && error.message ? error.message : 'Type your request instead.' });
+      } finally {
+        if (op.current === id) {
+          request.current = null;
+          enter('idle');
+        }
+      }
+    },
+    [enter],
+  );
 
   const stop = useCallback(() => {
     if (recorder.current?.state === 'recording') recorder.current.stop();
   }, []);
 
   const start = useCallback(async () => {
-    if (recorder.current || request.current) return;
-    discard.current = false;
+    if (phase.current !== 'idle') return;
+    const id = ++op.current;
+    enter('requesting');
     let media: MediaStream;
     try {
       media = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
     } catch (error) {
+      if (op.current !== id) return;
       toast.error(micError(error).title, { description: micError(error).description });
-      return;
+      return enter('idle');
     }
+    // Cancelled or unmounted while the permission prompt was open: hand the microphone straight back.
+    if (op.current !== id) return media.getTracks().forEach((track) => track.stop());
     stream.current = media;
-    const rec = new MediaRecorder(media);
+    let rec: MediaRecorder;
+    try {
+      rec = new MediaRecorder(media);
+    } catch (error) {
+      release();
+      toast.error(micError(error).title, { description: micError(error).description });
+      return enter('idle');
+    }
     recorder.current = rec;
     const chunks: Blob[] = [];
     const began = Date.now();
     rec.ondataavailable = (event) => event.data.size > 0 && chunks.push(event.data);
     rec.onstop = () => {
+      // A cancelled recording was already released, and its refs may now belong to a newer one.
+      if (op.current !== id) return;
       const type = rec.mimeType;
       release();
-      void finish(chunks, type, Date.now() - began);
+      void finish(id, chunks, type, Date.now() - began);
     };
     rec.start();
     try {
@@ -113,29 +140,26 @@ export function useVoiceInput(onText: (text: string) => void) {
       /* the waveform is decoration; recording works without it */
     }
     setStartedAt(began);
-    setState('recording');
+    enter('recording');
     limit.current = setTimeout(stop, MAX_RECORDING_MS);
-  }, [finish, stop, release]);
+  }, [enter, finish, stop, release]);
 
-  /** Drop the recording or the transcription in flight; nothing reaches the text field. */
-  const cancel = useCallback(() => {
-    discard.current = true;
+  /** Ends whatever is in flight without delivering anything: permission prompt, recording or transcription. */
+  const abandon = useCallback(() => {
+    op.current++;
     request.current?.abort();
     request.current = null;
     if (recorder.current?.state === 'recording') recorder.current.stop();
-    else release();
-    setState('idle');
+    release();
   }, [release]);
 
-  useEffect(
-    () => () => {
-      discard.current = true;
-      request.current?.abort();
-      if (recorder.current?.state === 'recording') recorder.current.stop();
-      release();
-    },
-    [release],
-  );
+  /** Drop the recording or the transcription in flight; nothing reaches the text field. */
+  const cancel = useCallback(() => {
+    abandon();
+    enter('idle');
+  }, [abandon, enter]);
+
+  useEffect(() => abandon, [abandon]);
 
   return { state, startedAt, analyser, start, stop, cancel };
 }
