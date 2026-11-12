@@ -19,7 +19,8 @@ const STRIP = 4;
 /** The two vertical rails. Place once, as a direct child of a `relative isolate` page wrapper. */
 export function GuideRails() {
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 hidden sm:block">
+    // One layer above the page backdrop (-z-10), so the rails draw over the clouds, still under content.
+    <div aria-hidden className="pointer-events-none absolute inset-0 -z-[5] hidden sm:block">
       <div className={cn(COLUMN, 'h-full')}>
         <div className="relative h-full">
           <span className="dots-y absolute inset-y-0" style={{ left: -OUTSET - STRIP / 2, width: STRIP }} />
