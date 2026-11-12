@@ -21,7 +21,7 @@
   --color-foreground: var(--ink);
   --color-card: var(--surface);
   --color-card-foreground: var(--ink);
-  --color-popover: var(--surface);
+  --color-popover: var(--float);
   --color-popover-foreground: var(--ink);
   --color-primary: var(--brand);
   --color-primary-foreground: var(--brand-ink);
@@ -37,7 +37,16 @@
   --color-ring: var(--brand);
 
   --color-bg: var(--bg);
+  /*
+   * Depth, back to front: bg (the page) → tray (recessed inside a card) → surface (cards) →
+   * raised (on a card or over the scene) → float (menus, popovers, dialogs). In dark mode each
+   * step is a little lighter, so nearer things read as closer; in light mode they stay white
+   * and the shadows carry the depth.
+   */
+  --color-tray: var(--tray);
   --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-float: var(--float);
   --color-sunken: var(--sunken);
   --color-ink: var(--ink);
   --color-ink-strong: var(--ink-strong);
@@ -150,8 +159,12 @@
 }
 
 :root {
-  --bg: #fafaf9;
+  /* The page field, from ui-layouts' Financial hero (#f7f9fc): a cool white under its cloud sky. */
+  --bg: #f7f9fc;
+  --tray: #fafaf9;
   --surface: #ffffff;
+  --raised: #ffffff;
+  --float: #ffffff;
   --sunken: #f5f5f4;
   --ink: #292524;
   --ink-strong: #1c1917;
@@ -185,8 +198,6 @@
 
   /* Crosshatch lines for recessed cells that windows float on. */
   --pattern: rgb(28 25 23 / 0.075);
-  /* Pattern Craft's Pastel Wave, with Ocean Breeze blue/teal and a silver finish. */
-  --glow: linear-gradient(120deg, #b3e5fc 0%, #e0f2f1 50%, #f0f0f0 100%);
   /* the light band that sweeps across brand eyebrows */
   --shimmer-light: #7fd0c4;
   --lift: 0 0 0 1px var(--edge-card), 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
@@ -212,8 +223,11 @@
 }
 
 .dark {
-  --bg: #101011;
+  --bg: #0e0e0f;
+  --tray: #141416;
   --surface: #19191b;
+  --raised: #1f1f22;
+  --float: #252529;
   --sunken: #212123;
   --ink: #e4e4e7;
   --ink-strong: #fafafa;
@@ -246,8 +260,6 @@
   --syn-punct: #78716c;
 
   --pattern: rgb(255 255 255 / 0.055);
-  /* The scene supplies colour against the existing near-black page in dark mode. */
-  --glow: none;
   --shimmer-light: #ffffff;
   --lift: 0 0 0 1px var(--edge-card), 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
   --elevated: 0 24px 40px -20px rgb(0 0 0 / 0.7), 0 10px 24px 0 rgb(0 0 0 / 0.25), 0 1px 1px 0 rgb(0 0 0 / 0.4), 0 0 0 1px rgb(255 255 255 / 0.1), 0 8px 14px -10px rgb(0 0 0 / 0.6);
@@ -425,6 +437,73 @@
   }
 }
 
+/*
+ * Dark-mode grain, after Aceternity's Fluid Notch: an SVG fractal-noise tile (baseFrequency 0.9,
+ * three octaves) turned into white specks by a contrast-boosted alpha row (1.6, -0.55). Their
+ * layer sits at 22% on one small notch; spread over large cards that reads as noise, so the
+ * amount is tuned per surface, the way their Grain / Dust / Grain Background controls are meant
+ * to be used. The opacity is folded into each tile's alpha row, so every layer is a plain
+ * background image with no extra element.
+ *
+ *   cards       14%   large areas, lighter than the notch
+ *   floating    18%   menus and popovers: small, closest to the notch's scale
+ *   page         3%   "Grain Background": fine (1.2) and dense, a low cut-off so ~97% of pixels
+ *                     carry a little light: one continuous tooth, not specks with black between
+ *   hero        +3%   the same grain again at the top of the page (6% there), fading into the
+ *                     page's as it falls (this replaces Fluid Notch's sparse "Dust": isolated
+ *                     bright specks read as gaps across a large dark page)
+ *   trays       none  sunken areas stay flat so the cards lift off them
+ */
+.dark {
+  --grain-card: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0.224 0 0 0 -0.077'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --grain-float: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0.288 0 0 0 -0.099'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --grain-page: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0.0420 0 0 0 -0.0105'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --grain-hero: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0.0420 0 0 0 -0.0105'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.dark :is(.bg-surface, .bg-card, .bg-raised) {
+  background-image: var(--grain-card);
+  background-size: 160px 160px;
+}
+.dark :is(.bg-popover, .bg-float) {
+  background-image: var(--grain-float);
+  background-size: 160px 160px;
+}
+.dark body {
+  background-image: var(--grain-page);
+  background-size: 200px 200px;
+}
+/* The hero carries a little more of the same grain, thinning out as it falls into the page's. */
+.dark .hero-glow {
+  background-image: var(--grain-hero);
+  background-size: 200px 200px;
+  mask-image: linear-gradient(to bottom, #000 0%, #000 30%, transparent 80%);
+  mask-composite: add;
+}
+
+/*
+ * The hero clouds' two fades, intersected. Down: full to 55%, gone by the scene's top rule.
+ * Across: full inside the column, easing over the last 160px to 18% at each dotted rail, then
+ * thinning to 5% at the screen's edge, so the margins carry only a trace of sky. The rails sit
+ * 12px outside the column (max 1104px, so 564px from the centre at most); min() keeps the fade
+ * on them at every width.
+ */
+.hero-clouds {
+  --rail: min(564px, 50% - 12px);
+  mask-image:
+    linear-gradient(to bottom, #000 55%, transparent),
+    linear-gradient(
+      to right,
+      rgb(0 0 0 / 0.05),
+      rgb(0 0 0 / 0.18) calc(50% - var(--rail)),
+      #000 calc(50% - var(--rail) + 160px),
+      #000 calc(50% + var(--rail) - 160px),
+      rgb(0 0 0 / 0.18) calc(50% + var(--rail)),
+      rgb(0 0 0 / 0.05)
+    );
+  mask-composite: intersect;
+  -webkit-mask-composite: source-in;
+}
+
 /* Border-only overrides leave the stone palette used by text and fills intact. */
 .border-line { border-color: var(--edge); }
 .border-line-strong { border-color: var(--edge-strong); }
@@ -470,7 +549,11 @@
   background:
     var(--surface-sheen) padding-box,
     linear-gradient(var(--surface-top), var(--surface-bottom)) padding-box,
-    linear-gradient(var(--surface-edge-top), var(--surface-edge-mid), var(--surface-edge-bottom)) border-box,
+    linear-gradient(
+        color-mix(in srgb, var(--surface-edge-top) calc(var(--surface-calm, 1) * 100%), transparent),
+        color-mix(in srgb, var(--surface-edge-mid) calc(var(--surface-calm, 1) * 100%), transparent),
+        color-mix(in srgb, var(--surface-edge-bottom) calc(var(--surface-calm, 1) * 100%), transparent)
+      ) border-box,
     linear-gradient(var(--surface-top), var(--surface-bottom)) border-box;
   box-shadow:
     0 0 0 1px var(--surface-ring),
@@ -499,16 +582,19 @@
 }
 
 /* Primary: TripTinker teal */
+/* Primary, light mode: Aceternity's own primary ("Browse Components" on ui.aceternity.com),
+   value for value, to sit with the sky backdrop. Dark mode keeps the teal below. */
 .t-surface-primary::before {
-  --surface-base: #13807a;
-  --surface-lit: #0f6e68;
+  --surface-base: #3f80ff;
+  --surface-lit: #2867f2;
   --surface-sheen: linear-gradient(#ffffff1f, #fff0 50%);
-  --surface-edge-top: #4fa9a2;
-  --surface-edge-bottom: #0a534e;
-  --surface-ring: #0a4f4a;
-  --surface-shade: #01302d2e;
-  --surface-drop-near: #0a4f4a1f;
-  --surface-drop: #0a4f4a29;
+  --surface-edge-top: #77a5ff;
+  --surface-edge-bottom: #1c54d6;
+  --surface-ring: #1a4bc2;
+  --surface-shade: #08206e2e;
+  --surface-drop-near: #1036a01f;
+  --surface-drop: #1036a029;
+  --surface-calm: 0.91;
   --surface-hover-tint: white 6%;
 }
 .dark .t-surface-primary::before {
@@ -543,15 +629,43 @@
   .signal-fill:not(:disabled):hover { filter: brightness(1.06); }
 }
 
+/*
+ * Aceternity's Pixel Prompt Button surface, light mode: a flat #2b5cfd body, a white/35 lip on top,
+ * a darker line along the bottom, a 1px ring in the deep blue, a soft blue glow underneath and a
+ * faint text shadow. The layered t-surface body is switched off so the canvas pixels sit on the
+ * flat colour, as in theirs. Dark mode keeps the regular primary.
+ */
+html:not(.dark) .pixel-prompt {
+  --pixel: #2b5cfd;
+  --pixel-deep: color-mix(in srgb, var(--pixel) 68%, black 32%);
+  --pixel-shade: color-mix(in srgb, color-mix(in srgb, var(--pixel) 45%, black 55%) 35%, transparent 65%);
+  background-color: var(--pixel);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.35),
+    inset 0 -1px 0 0 var(--pixel-shade),
+    0 0 0 1px var(--pixel-deep),
+    0 6px 16px -6px color-mix(in srgb, var(--pixel) 55%, transparent 45%),
+    0 1px 2px color-mix(in srgb, var(--pixel-deep) 30%, transparent 70%);
+  text-shadow: 0 1px 1px var(--pixel-shade);
+}
+html:not(.dark) .pixel-prompt::before {
+  display: none;
+}
+html:not(.dark) .pixel-prompt:focus-visible {
+  outline: 3px solid color-mix(in oklab, #2b5cfd 40%, transparent);
+  outline-offset: 2px;
+}
+
 /* Outline: a white button with a hairline ring */
 .t-surface-outline::before {
   --surface-base: #ffffff;
   --surface-lit: #f7f7f6;
   --surface-edge-top: #fff0;
   --surface-edge-bottom: #0000000f;
-  --surface-ring: #0000001a;
-  --surface-drop-near: #0000000d;
-  --surface-drop: #00000014;
+  --surface-ring: #00000017;
+  --surface-drop-near: #00000008;
+  --surface-drop: #0000000a;
 }
 .dark .t-surface-outline::before {
   --surface-base: #1f1d1b;
