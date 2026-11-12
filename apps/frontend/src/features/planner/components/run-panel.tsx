@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, useIsPresent, useReducedMotion } from 'motion/react';
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown } from '@phosphor-icons/react';
 import { formatDuration, formatTime, pad2 } from '@/lib/format';
@@ -96,6 +96,8 @@ function useNow() {
  */
 export function RunPanel({ state, onCancel }: { state: Running; onCancel: () => void }) {
   const reduce = useReducedMotion();
+  // While it folds away it is already gone: no focus, no links, nothing for a screen reader.
+  const present = useIsPresent();
   const elapsed = useNow() - state.startedAt;
   const deferred = useDeferredValue(state.raw);
   const plan = useMemo(() => livePlan(deferred), [deferred]);
@@ -118,10 +120,12 @@ export function RunPanel({ state, onCancel }: { state: Running; onCancel: () => 
       ref={root}
       aria-label="Generation progress"
       aria-busy="true"
+      inert={!present}
+      aria-hidden={present ? undefined : true}
       initial={reduce ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0, transition: { duration: 0.3, ease: EASE } }}
       exit={reduce ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0, height: 0, paddingTop: 0, paddingBottom: 0, filter: 'blur(6px)', transition: { duration: 0.34, ease: EASE } }}
-      className="grid grid-cols-1 items-start gap-5 overflow-hidden border-t border-line bg-sunken/45 p-4 shadow-recess sm:gap-6 sm:p-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-stretch"
+      className="grid grid-cols-1 items-start gap-5 overflow-hidden border-t border-line bg-tray p-4 shadow-recess sm:gap-6 sm:p-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-stretch"
     >
       <ThinkingState label={state.kind === 'refine' ? 'Revising' : 'Thinking'} detail={line.text} detailKey={line.key} elapsed={elapsed} onStop={onCancel}>
         {searched && <WebSearch query={state.searchQuery} sources={state.sources} searching={state.stage === 'searching'} elapsed={elapsed} />}
@@ -147,7 +151,7 @@ function ViewToggle({ value, onChange }: { value: 'preview' | 'json'; onChange: 
           shared-layout (layoutId) pill would hold the panel's exit open when the run ends. */}
       <span
         aria-hidden
-        className="absolute inset-y-0.5 left-0.5 w-[calc(50%-2px)] rounded-md bg-surface shadow-control transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+        className="absolute inset-y-0.5 left-0.5 w-[calc(50%-2px)] rounded-md bg-surface shadow-control transition-transform dark:bg-white/10 duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
         style={{ transform: value === 'json' ? 'translateX(100%)' : undefined }}
       />
       {(
