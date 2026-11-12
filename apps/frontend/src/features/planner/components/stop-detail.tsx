@@ -59,13 +59,13 @@ export function StopDetail({ stop, index, count, dayId, days, destination, onMov
           </p>
         )}
         {stop.tip && (
-          <aside aria-label="Travel tip" className="mx-auto flex w-fit max-w-full flex-col items-center rounded-lg border border-line bg-sunken/55 px-5 py-3 text-center">
+          <aside aria-label="Travel tip" className="mx-auto flex w-fit max-w-full flex-col items-center rounded-lg border border-line bg-tray px-5 py-3 text-center">
             <p className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-brand"><Lightbulb size={13} aria-hidden />Good to know</p>
             <p className="mt-1.5 max-w-[46ch] text-[13px] leading-[21px] text-pretty break-words text-muted">{stop.tip}</p>
           </aside>
         )}
       </div>
-      <footer className={cn('flex shrink-0 items-center justify-between gap-2', compact ? 'pt-3' : 'border-t border-line bg-sunken/30 px-5 py-3')}>
+      <footer className={cn('flex shrink-0 items-center justify-between gap-2', compact ? 'pt-3' : 'border-t border-line bg-tray px-5 py-3')}>
         <Button asChild size={compact ? 'icon-sm' : 'sm'} variant="secondary">
           <a href={mapsSearchUrl(stop.title, destination, stop.area)} target="_blank" rel="noreferrer" aria-label={compact ? `Open ${stop.title} in Maps` : undefined}>
             <MapPin /> {!compact && 'Maps'}
