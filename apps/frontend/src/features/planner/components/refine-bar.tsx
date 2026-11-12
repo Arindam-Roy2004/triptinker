@@ -61,7 +61,7 @@ export function RefineBar(props: Props) {
   const reduce = useReducedMotion();
   const mode = props.pending ? 'review' : props.run ? 'running' : props.problem ? 'problem' : 'idle';
   return (
-    <div className="border-b border-line bg-sunken/50 px-6 py-4 last:border-b-0">
+    <div className="border-b border-line bg-tray px-6 py-4 last:border-b-0">
       <div
         className={cn(
           'overflow-hidden rounded-xl bg-surface shadow-[0_0_0_1px_var(--edge-control),0_1px_2px_0_var(--edge-drop)] transition-[opacity,box-shadow] focus-within:shadow-[0_0_0_1px_var(--edge-hover),0_1px_2px_0_var(--edge-drop)]',
