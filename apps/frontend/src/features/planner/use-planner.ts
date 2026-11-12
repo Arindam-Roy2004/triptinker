@@ -54,6 +54,8 @@ export function usePlanner() {
   const state = generation.state;
   const running = state.status === 'running';
   const runKind = state.status === 'idle' ? null : state.kind;
+  /** A refinement is in flight or under review; the trip on screen is not the one the store holds. */
+  const reviewLocked = !!pending || (running && runKind === 'refine');
   const saved = library.isSaved(trip);
   const notConfigured = !!health && !health.configured && !simulate;
   const { matchDestination } = scene;
@@ -206,7 +208,8 @@ export function usePlanner() {
     toast(`Removed “${found.stop.title}”`, { id: 'stop-removed', action: { label: 'Undo', onClick: () => store.edit((it) => restoreStop(it, found.day.id, found.index, found.stop)) } });
   };
 
-  // ⌘K focuses the prompt; ⌘Z / ⇧⌘Z undo and redo outside text fields.
+  // ⌘K focuses the prompt; ⌘Z / ⇧⌘Z undo and redo outside text fields, except while a refinement
+  // is running or under review: the itinerary is locked then, and Apply would overwrite the undo.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (!(event.metaKey || event.ctrlKey)) return;
@@ -218,12 +221,13 @@ export function usePlanner() {
       }
       if (key !== 'z' || (event.target as HTMLElement).closest('input, textarea, [contenteditable="true"]')) return;
       event.preventDefault();
+      if (reviewLocked) return;
       if (event.shiftKey) store.redo();
       else store.undo();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [store, focusPrompt]);
+  }, [store, focusPrompt, reviewLocked]);
 
   // ← / → browse the scenes, like the caption's arrows, whenever the arrow keys are not already
   // someone else's: text fields, the day tabs, keyboard reordering, radio groups, menus, dialogs.
