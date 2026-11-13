@@ -53,6 +53,10 @@ type Props = {
   onSave: () => void;
   /** Closes the sample and returns the page to its starting state. */
   onHideSample?: () => void;
+  /** Starts over with an empty prompt, from the card itself so nobody has to scroll back up. */
+  onNewTrip: () => void;
+  /** Ref for the card's New trip button; the page hides the header's copy while this one is on screen. */
+  newTripSlot: (el: HTMLElement | null) => void;
   /** Take the trip out of the app: print / save as PDF, a text file, or copied text. */
   onExport: (format: ExportFormat) => void;
   onReorder: (dayId: string, from: number, to: number) => void;
@@ -227,7 +231,7 @@ function onTabKeys(event: KeyboardEvent<HTMLElement>, ids: string[], current: st
 
 export function ResultSection(props: Props) {
   const reduce = useReducedMotion();
-  const { trip, sceneSrc, activeDayId, onActiveDay, review, locked, highlight } = props;
+  const { trip, sceneSrc, activeDayId, onActiveDay, review, locked, highlight, newTripSlot } = props;
   const marked = review ?? highlight ?? null;
   const { itinerary } = trip;
   const [selected, setSelected] = useState<string | null>(null);
@@ -306,7 +310,14 @@ export function ResultSection(props: Props) {
             </Reveal>
           )}
         </div>
-        <Reveal as="div" index={3} className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
+        {/* Beside the title (lg+) the actions stay on one line and the title column gives way;
+            below that they span the card and wrap, with Save filling its row. */}
+        <Reveal as="div" index={3} className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:shrink-0 lg:flex-nowrap">
+          <span ref={newTripSlot} className="inline-flex">
+            <IconButton label="New trip" description="Plan a different trip" onClick={props.onNewTrip}>
+              <Plus />
+            </IconButton>
+          </span>
           <IconButton label="Undo" description={props.canUndo ? 'Undo last change' : 'No changes to undo'} shortcut="⌘Z" onClick={props.onUndo} disabled={locked || !props.canUndo}>
             <ArrowCounterClockwise />
           </IconButton>

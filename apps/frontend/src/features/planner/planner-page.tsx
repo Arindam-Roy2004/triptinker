@@ -1,5 +1,5 @@
-import { ArrowRight, Plus } from '@phosphor-icons/react';
-import { AnimatePresence, motion, useIsPresent, useReducedMotion, type HTMLMotionProps } from 'motion/react';
+import { ArrowRight } from '@phosphor-icons/react';
+import { AnimatePresence, motion, usePresence, useReducedMotion, type HTMLMotionProps } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { LIMITS } from '@triptinker/contracts';
 import { COLUMN, GuideLine, GuideRails } from '@/components/site/guides';
@@ -9,16 +9,19 @@ import { ThemeToggle } from '@/components/site/theme-toggle';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { SceneCaption, SceneStage } from '@/features/scenes/scene-stage';
+import { onScrollIdle } from '@/lib/scroll-idle';
 import { cn } from '@/lib/utils';
 import { SCENES, sceneSrc } from '@/features/scenes/scenes';
 import { FailureLab } from './components/failure-lab';
 import { LibraryMenu } from './components/library-menu';
+import { NewTripButton } from './components/new-trip-button';
 import { PromptCard } from './components/prompt-card';
 import { RefineBar } from './components/refine-bar';
 import { ResultSection } from './components/result-section';
 import { RunPanel } from './components/run-panel';
 import { SampleToggle } from './components/sample-toggle';
 import { FeatureCells, ProblemCell, StoppedNote } from './components/strip-cells';
+import { useCardButtonBelow } from './use-card-button-below';
 import { usePlanner } from './use-planner';
 
 const EXAMPLES = [
@@ -46,6 +49,7 @@ export function PlannerPage() {
   // The caption names the scene on screen, so it changes when the picture starts to, not before.
   const [revealed, setRevealed] = useState(scene.scene);
   const reduce = useReducedMotion();
+  const newTrip = useCardButtonBelow();
 
   // A stopped plan leaves a short note under the prompt. It clears itself after a few seconds, and
   // at once when any new run starts (adjusted during render, so a stale note never flashes).
@@ -88,13 +92,9 @@ export function PlannerPage() {
       <HeroGlow />
       <GuideRails />
       <SiteHeader>
-        {trip && (
-          <Button variant="secondary" size="sm" onClick={requestNew} aria-label="New trip">
-            <Plus />
-            <span className="sm:hidden">New</span>
-            <span className="hidden sm:inline">New trip</span>
-          </Button>
-        )}
+        {/* Only up top, while the trip card (and its own New trip button) is still below the fold;
+            it pixel-dissolves away as the card arrives, and stays away further down the trip. */}
+        <AnimatePresence initial={false}>{trip && newTrip.below && <NewTripButton key="new-trip" onClick={requestNew} />}</AnimatePresence>
         <LibraryMenu
           trips={library.trips}
           currentId={trip?.id ?? null}
@@ -215,6 +215,8 @@ export function PlannerPage() {
                 onRedo={store.redo}
                 onSave={save}
                 onHideSample={hideSample}
+                onNewTrip={requestNew}
+                newTripSlot={newTrip.slotRef}
                 onExport={exportCurrentTrip}
                 onReorder={reorder}
                 actionsFor={actionsFor}
@@ -256,7 +258,9 @@ export function PlannerPage() {
       </footer>
 
       <AlertDialog open={confirmNew} onOpenChange={setConfirmNew}>
-        <AlertDialogContent>
+        {/* Hugs its content (the button row sets the width) instead of the stock 512px, which
+            left an empty band beside one line of text. Phones keep the full-width stack. */}
+        <AlertDialogContent className="sm:w-auto">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-[22px] font-medium tracking-[-0.01em]">Start a new trip?</AlertDialogTitle>
             <AlertDialogDescription>This trip has unsaved changes.</AlertDialogDescription>
@@ -281,8 +285,15 @@ export function PlannerPage() {
 }
 
 /** A motion block that goes inert and silent the moment it starts animating out, so a section
- *  that is leaving can't take focus or be read twice alongside what replaces it. */
+ *  that is leaving can't take focus or be read twice alongside what replaces it.
+ *  Its space is held (faded out) until the page stops scrolling: New trip and Hide sample scroll
+ *  up as the trip leaves, and removing it mid-scroll would shorten the page under that scroll,
+ *  making the browser clamp it and the view jump. */
 function Leaving(props: HTMLMotionProps<'div'>) {
-  const present = useIsPresent();
+  const [present, safeToRemove] = usePresence();
+  useEffect(() => {
+    if (present) return;
+    return onScrollIdle(() => safeToRemove?.());
+  }, [present, safeToRemove]);
   return <motion.div {...props} inert={!present} aria-hidden={present ? undefined : true} />;
 }
