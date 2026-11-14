@@ -90,10 +90,11 @@ tests/e2e        Playwright, desktop and mobile
 - Itinerary edits are plain functions in `operations.ts` and go through one store with undo and redo, so dragging, moving, removing and AI-proposed changes all behave the same way.
 - Packages used for the harder UI bits: `@dnd-kit` for drag and keyboard reordering, `motion` for animation, Radix for menus and dialogs.
 - In production the same Node process serves the built frontend, so there is one thing to run. `vercel.json` is included if you would rather host it on Vercel.
+- Place names in the trip box are highlighted as you type, with no model call: `apps/frontend/public/data/places.txt` (every city of 15,000+ people, every region and country) is built from [GeoNames](https://www.geonames.org) data (CC BY 4.0) by `scripts/build-places.mjs`, and loads in the background when the browser is idle.
 
 ## Tests
 
-- 209 unit and API tests cover the contracts and their boundaries, saved-trip validation and clean-up of older saved trips, scene image loading, JSON extraction and salvage, the repair pipeline, search, speech and the HTTP layer, including the failure cases above.
+- 223 unit and API tests cover the contracts and their boundaries, saved-trip validation and clean-up of older saved trips, scene image loading, place and month highlighting in the trip box, JSON extraction and salvage, the repair pipeline, search, speech and the HTTP layer, including the failure cases above.
 - 19 browser tests run on a desktop and a phone-sized viewport (two are desktop-only): sample editing and persistence, moving stops with undo and redo, scene preloading, transitions and arrow-key browsing, the failure scenarios, stop and retry, refinement review, and saved trips.
 
 ## AI usage

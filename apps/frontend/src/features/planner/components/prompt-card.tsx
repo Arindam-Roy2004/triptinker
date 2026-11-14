@@ -9,6 +9,7 @@ import { RunningRing } from '@/components/ui/running-ring';
 import { SlidingNumber } from '@/components/ui/sliding-number';
 import { cn } from '@/lib/utils';
 import { appendSpoken } from '../use-voice-input';
+import { HighlightedText, HighlightMirror } from './highlight-mirror';
 import { MicButton } from './mic-button';
 
 export type TripOptions = { days: number | null; pace: Pace };
@@ -150,6 +151,10 @@ export function PromptCard({
   const [focused, setFocused] = useState(false);
   const [shaking, setShaking] = useState(false);
   const [listening, setListening] = useState(false);
+  // While an IME is composing, the textarea shows its own ink: the mirror can't follow an uncommitted string.
+  const [composing, setComposing] = useState(false);
+  const mirrorRef = useRef<HTMLDivElement>(null);
+  const mirrored = !!value && !composing;
   const localRef = useRef<HTMLTextAreaElement | null>(null);
   const id = useId();
   const [hovered, setHovered] = useState(false);
@@ -221,6 +226,7 @@ export function PromptCard({
           {label}
         </label>
         <div className={cn('relative', fieldHeight)}>
+          {mirrored && <HighlightMirror ref={mirrorRef} text={value} className="text-base leading-[22px] text-ink" />}
           <textarea
             id={id}
             ref={localRef}
@@ -232,25 +238,35 @@ export function PromptCard({
             onKeyDown={onKeyDown}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
+            onCompositionStart={() => setComposing(true)}
+            onCompositionEnd={() => setComposing(false)}
+            onScroll={(e) => {
+              if (mirrorRef.current) mirrorRef.current.scrollTop = e.currentTarget.scrollTop;
+            }}
             maxLength={maxLength}
             rows={size === 'hero' ? 2 : 1}
             aria-invalid={!!error}
             // Focusing keeps the example that was showing, so the text doesn't swap under the caret.
             placeholder={reduce || focused ? (typed[ghost.line] ?? typed[0]) : ''}
             // As tall as its area, so a click anywhere on the example text lands in the field.
-            className={cn('block max-h-48 w-full resize-none bg-transparent text-base leading-[22px] text-ink outline-none [field-sizing:content] placeholder:text-subtle focus-visible:outline-none', fieldHeight)}
+            className={cn(
+              'hl-field relative block max-h-48 w-full resize-none bg-transparent text-base leading-[22px] text-ink outline-none [field-sizing:content] placeholder:text-subtle focus-visible:outline-none',
+              // The mirror behind draws the words; the textarea keeps the caret, selection and input.
+              mirrored && 'no-scrollbar text-transparent caret-ink',
+              fieldHeight,
+            )}
           />
           {!value && !focused && !reduce && !listening && (
             <span
               ref={ghostRef}
               // Placeholder grey, so it is never mistaken for the traveller's own words.
               className={cn(
-                'pointer-events-none absolute inset-0 overflow-hidden text-base leading-[22px] text-subtle transition-opacity duration-300 data-clipped:[mask-image:linear-gradient(to_bottom,transparent,black_22px)]',
+                'ghost-hl pointer-events-none absolute inset-0 overflow-hidden text-base leading-[22px] text-subtle transition-opacity duration-300 data-clipped:[mask-image:linear-gradient(to_bottom,transparent,black_22px)]',
                 ghost.fading && 'opacity-0',
               )}
               aria-hidden
             >
-              {ghost.text}
+              <HighlightedText text={ghost.text} />
               {/* The caret only while it is typing: a held or settled example is just a placeholder. */}
               {ghost.typing && <span className="ml-0.5 inline-block h-4 w-px animate-caret bg-subtle align-middle" />}
             </span>

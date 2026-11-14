@@ -1,6 +1,6 @@
 import { ArrowUp, WarningCircle } from '@phosphor-icons/react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { useEffect, useId, useState, type KeyboardEvent, type RefObject } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
 import { LIMITS } from '@triptinker/contracts';
 import { AnimateIcon } from '@animate-ui/react/icons';
 import { Cancel01 } from '@/components/animate-ui/icons/hugeicons/cancel-01';
@@ -12,6 +12,7 @@ import type { ItineraryDiff } from '../diff';
 import type { GenerationState } from '../use-generation';
 import { describeProblem, type Problem } from '../problem-copy';
 import { appendSpoken } from '../use-voice-input';
+import { HighlightMirror } from './highlight-mirror';
 import { MicButton } from './mic-button';
 import { ThinkingMark } from './thinking-state';
 
@@ -90,6 +91,9 @@ export function RefineBar(props: Props) {
 function Compose({ value, onChange, onSubmit, error, onClearError, disabled, inputRef, voice }: Props) {
   const id = useId();
   const [focused, setFocused] = useState(false);
+  const [composing, setComposing] = useState(false);
+  const mirrorRef = useRef<HTMLDivElement>(null);
+  const mirrored = !!value && !composing;
   const tooShort = value.trim().length < LIMITS.instructionMin;
   const send = (text: string) => !disabled && onSubmit(text);
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -111,6 +115,8 @@ function Compose({ value, onChange, onSubmit, error, onClearError, disabled, inp
         <label htmlFor={id} className="sr-only">
           Describe a change to the plan
         </label>
+        <div className="relative min-w-0 flex-1">
+        {mirrored && <HighlightMirror ref={mirrorRef} text={value} className="py-[7px] text-base leading-[22px] text-ink sm:text-[15px]" />}
         <textarea
           id={id}
           ref={inputRef}
@@ -126,9 +132,18 @@ function Compose({ value, onChange, onSubmit, error, onClearError, disabled, inp
           onKeyDown={onKeyDown}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
+          onCompositionStart={() => setComposing(true)}
+          onCompositionEnd={() => setComposing(false)}
+          onScroll={(e) => {
+            if (mirrorRef.current) mirrorRef.current.scrollTop = e.currentTarget.scrollTop;
+          }}
           placeholder="Ask for a change to this plan…"
-          className="block max-h-32 min-h-9 min-w-0 flex-1 resize-none bg-transparent py-[7px] text-base leading-[22px] text-ink outline-none [field-sizing:content] placeholder:truncate placeholder:text-subtle focus-visible:outline-none sm:text-[15px]"
+          className={cn(
+            'hl-field relative block max-h-32 min-h-9 w-full resize-none bg-transparent py-[7px] text-base leading-[22px] text-ink outline-none [field-sizing:content] placeholder:truncate placeholder:text-subtle focus-visible:outline-none sm:text-[15px]',
+            mirrored && 'no-scrollbar text-transparent caret-ink',
+          )}
         />
+        </div>
         {voice && (
           <MicButton
             size={9}
