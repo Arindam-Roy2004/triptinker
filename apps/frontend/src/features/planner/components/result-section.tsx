@@ -12,6 +12,7 @@ import { PixelButton } from '@/components/ui/pixel-button';
 import { SaveLabel } from './save-label';
 import { PulseLine, WordsIn } from '@/components/ui/pulse-line';
 import { Reveal } from '@/components/ui/reveal';
+import { SlidingNumber } from '@/components/ui/sliding-number';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatDuration, formatTime, pad2 } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -73,7 +74,7 @@ type Props = {
   onAskForDay?: (dayNumber: number) => void;
 };
 
-type StatItem = { label: string; value: string };
+type StatItem = { label: string; value: string | number };
 
 /** Stats that follow the data: a cell exists only when the plan has something to say for it. */
 function tripStats(trip: Trip): StatItem[] {
@@ -83,13 +84,13 @@ function tripStats(trip: Trip): StatItem[] {
   const all: (StatItem | null)[] = [
     {
       label: itinerary.days.length === 1 ? 'Day' : 'Days',
-      value: String(itinerary.days.length),
+      value: itinerary.days.length,
     },
     {
       label: stops.length === 1 ? 'Stop' : 'Stops',
-      value: String(stops.length),
+      value: stops.length,
     },
-    areas > 1 ? { label: 'Areas', value: String(areas) } : null,
+    areas > 1 ? { label: 'Areas', value: areas } : null,
     request ? { label: 'Pace', value: PACE_LABEL[request.pace] } : null,
   ];
   return all.filter((s): s is StatItem => s !== null).slice(0, 4);
@@ -106,7 +107,7 @@ const STAT_COLS = {
 function Stat({ label, value }: StatItem) {
   return (
     <div className="flex flex-col items-center justify-center gap-1.5 bg-surface px-4 py-5 text-center">
-      <span className="tabular text-[22px] leading-7 font-medium tracking-[-0.01em] text-ink">{value}</span>
+      <span className="tabular text-[22px] leading-7 font-medium tracking-[-0.01em] text-ink">{typeof value === 'number' ? <SlidingNumber value={value} /> : value}</span>
       <span className="label text-[11px] text-subtle">{label}</span>
     </div>
   );
@@ -459,28 +460,30 @@ export function ResultSection(props: Props) {
           {desktop && (
             <SceneBackdrop src={sceneSrc} className="p-4 lg:p-5">
               {currentStop ? (
-                <motion.div
-                  key={currentStop.id}
-                  initial={reduce ? false : { opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: reduce ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
-                  className="sticky top-24"
-                >
+                // The window stays put across stops, so its counter can roll; only the body fades in anew.
+                <div className="sticky top-24">
                   <WindowFrame
-                    title={`Day ${pad2(dayIndex + 1)} · stop ${pad2(current + 1)} of ${pad2(day.stops.length)}`}
+                    title={<>Day <SlidingNumber value={dayIndex + 1} pad={2} /> · stop <SlidingNumber value={current + 1} pad={2} /> of <SlidingNumber value={day.stops.length} pad={2} /></>}
                   >
-                    <StopDetail
-                      readOnly={locked}
-                      stop={currentStop}
-                      index={current}
-                      count={day.stops.length}
-                      dayId={day.id}
-                      days={itinerary.days}
-                      destination={itinerary.destination}
-                      {...actionsFor(currentStop, current)}
-                    />
+                    <motion.div
+                      key={currentStop.id}
+                      initial={reduce ? false : { opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: reduce ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
+                    >
+                      <StopDetail
+                        readOnly={locked}
+                        stop={currentStop}
+                        index={current}
+                        count={day.stops.length}
+                        dayId={day.id}
+                        days={itinerary.days}
+                        destination={itinerary.destination}
+                        {...actionsFor(currentStop, current)}
+                      />
+                    </motion.div>
                   </WindowFrame>
-                </motion.div>
+                </div>
               ) : null}
             </SceneBackdrop>
           )}

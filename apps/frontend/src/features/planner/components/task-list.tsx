@@ -1,6 +1,7 @@
 import { ArrowCircleRight, CaretUp, CheckCircle, CircleNotch } from '@phosphor-icons/react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useId, useState } from 'react';
+import { SlidingNumber } from '@/components/ui/sliding-number';
 import { cn } from '@/lib/utils';
 
 export type PlanningTask = { id: string; label: string; detail?: string; status: 'done' | 'active' | 'todo' };
@@ -16,7 +17,7 @@ export function TaskList({ tasks }: { tasks: PlanningTask[] }) {
       <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls={id} aria-label={open ? 'Hide trip tasks' : 'Show trip tasks'} className="flex min-h-12 w-full items-center gap-2.5 px-4 text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand">
         <CircleNotch size={15} className="shrink-0 text-muted motion-safe:animate-spin" aria-hidden />
         <span className="flex-1 text-[13px] font-medium text-ink">Trip tasks</span>
-        <span className="tabular text-[12px] text-subtle" aria-label={`${completed} of ${tasks.length} tasks complete`}>{completed}/{tasks.length}</span>
+        <span className="tabular text-[12px] text-subtle" aria-label={`${completed} of ${tasks.length} tasks complete`}><SlidingNumber value={completed} />/<SlidingNumber value={tasks.length} /></span>
         <CaretUp size={12} className={cn('text-subtle transition-transform motion-reduce:transition-none', !open && 'rotate-180')} aria-hidden />
       </button>
       <AnimatePresence initial={false}>

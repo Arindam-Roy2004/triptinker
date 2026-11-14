@@ -461,6 +461,27 @@
   .shadow-bezel {
     box-shadow: var(--bezel);
   }
+  /* SlidingNumber's digit column: the real digit holds the space, the strip above it does the rolling. */
+  .slide-digit {
+    position: relative;
+    display: inline-block;
+    overflow-x: visible;
+    overflow-y: clip;
+    font-variant-numeric: tabular-nums;
+  }
+  .slide-digit > span {
+    color: transparent;
+  }
+  .slide-digit::after {
+    content: '0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9\A 0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9\A 0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9';
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    white-space: pre;
+    text-align: center;
+    pointer-events: none;
+    transform: translateY(calc(var(--pos, 10) * -1lh));
+  }
   /* Mainline's dotted frame: 2px dots every 8px along a 4px strip. */
   .dots-y {
     background-image: radial-gradient(circle at 2px 4px, var(--dot) 1px, transparent 1.25px);

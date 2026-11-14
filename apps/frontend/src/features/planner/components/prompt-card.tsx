@@ -6,6 +6,7 @@ import { useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useStat
 import { LIMITS, PACES, type Pace } from '@triptinker/contracts';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RunningRing } from '@/components/ui/running-ring';
+import { SlidingNumber } from '@/components/ui/sliding-number';
 import { cn } from '@/lib/utils';
 import { appendSpoken } from '../use-voice-input';
 import { MicButton } from './mic-button';
@@ -336,7 +337,7 @@ function TripOptionsControl({ options, onChange, disabled }: { options: TripOpti
               <Minus size={14} />
             </button>
             <output className="label tabular text-xs text-ink" aria-live="polite">
-              {options.days === null ? 'Auto' : `${options.days} days`}
+              {options.days === null ? 'Auto' : <><SlidingNumber value={options.days} /> days</>}
             </output>
             <button
               type="button"

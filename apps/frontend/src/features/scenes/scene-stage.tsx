@@ -1,6 +1,7 @@
 import { CaretLeft, CaretRight } from '@phosphor-icons/react';
 import { useReducedMotion } from 'motion/react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { SlidingNumber } from '@/components/ui/sliding-number';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { CELL, LightField, MOTION, hexColor } from './pixel-motion';
@@ -287,7 +288,7 @@ export function SceneCaption({ scene, position, onPrev, onNext, className }: { s
         {scene.name} <span className="text-muted">· {scene.place}</span>
       </p>
       <span className="label tabular ml-1 text-[11px] text-subtle">
-        {String(position.index + 1).padStart(2, '0')}/{String(position.total).padStart(2, '0')}
+        <SlidingNumber value={position.index + 1} pad={2} />/<SlidingNumber value={position.total} pad={2} />
       </span>
       <SceneArrow label="Previous scene" shortcut="←" keys="ArrowLeft" onClick={onPrev} className="ml-1">
         <CaretLeft size={12} />

@@ -2,6 +2,7 @@ import { BookmarkSimple, Trash } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { SlidingNumber } from '@/components/ui/sliding-number';
 import { pad2, relativeTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { countStops } from '../operations';
@@ -30,7 +31,7 @@ export function LibraryMenu({ trips, currentId, onOpen, onDelete }: Props) {
         <Button variant="ghost" aria-label={`Saved trips (${trips.length})`} className="px-2 sm:px-4">
           <BookmarkSimple />
           <span className="hidden sm:inline">Saved</span>
-          {trips.length > 0 && <span className="tabular rounded-md bg-sunken px-1.5 text-[11px] text-muted">{trips.length}</span>}
+          {trips.length > 0 && <span className="tabular rounded-md bg-sunken px-1.5 text-[11px] text-muted"><SlidingNumber value={trips.length} /></span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" sideOffset={12} collisionPadding={16} className="flex w-[min(22rem,calc(100vw-2rem))] flex-col overflow-hidden p-0">
