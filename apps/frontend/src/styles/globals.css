@@ -486,24 +486,23 @@
 }
 
 /*
- * The hero clouds' two fades, intersected. Down: full to 55%, gone by the scene's top rule.
- * Across: full inside the column, easing over the last 160px to 18% at each dotted rail, then
- * thinning to 5% at the screen's edge, so the margins carry only a trace of sky. The rails sit
- * 12px outside the column (max 1104px, so 564px from the centre at most); min() keeps the fade
- * on them at every width.
+ * The hero landscape's two fades, intersected. Down: full to 70%, gone by the scene's top rule,
+ * so the misty ridges show before they dissolve. Across: the box already ends at the dotted rails; the
+ * image is transparent at each rail and eases to full over the outer 18% (at most 200px) on
+ * either side, so nothing reaches the margins beyond them.
  */
-.hero-clouds {
-  --rail: min(564px, 50% - 12px);
+.hero-landscape {
+  --edge-fade: min(200px, 18%);
   mask-image:
-    linear-gradient(to bottom, #000 55%, transparent),
+    linear-gradient(to bottom, #000 70%, transparent),
     linear-gradient(
       to right,
-      rgb(0 0 0 / 0.05),
-      rgb(0 0 0 / 0.18) calc(50% - var(--rail)),
-      #000 calc(50% - var(--rail) + 160px),
-      #000 calc(50% + var(--rail) - 160px),
-      rgb(0 0 0 / 0.18) calc(50% + var(--rail)),
-      rgb(0 0 0 / 0.05)
+      transparent,
+      rgb(0 0 0 / 0.55) calc(var(--edge-fade) * 0.5),
+      #000 var(--edge-fade),
+      #000 calc(100% - var(--edge-fade)),
+      rgb(0 0 0 / 0.55) calc(100% - var(--edge-fade) * 0.5),
+      transparent
     );
   mask-composite: intersect;
   -webkit-mask-composite: source-in;

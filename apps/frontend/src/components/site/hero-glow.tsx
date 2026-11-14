@@ -10,8 +10,8 @@ import { useId } from 'react';
  *      from blur(20px) and opacity 0, over 0.5s after a 2.5s delay. Theirs is 600px tall; here
  *      blue-100 lands at 600px (the hero's foot) and the fade then runs on to the page's bottom,
  *   2. their two blurred beams in the top-left corner (z-1, so they sit over the wash).
- * Their cloud photo (50%, cover) lives in HeroClouds: it fills the hero and ends at the scene's
- * top dotted rule, so the clouds sit above that line and only the gradient continues below.
+ * In place of their cloud photo, HeroLandscape paints a mountain landscape between the dotted rails,
+ * ending at the scene's top dotted rule, so only the gradient continues below it.
  *
  * Dark mode shows none of it: just a little extra grain over the hero (see .dark .hero-glow).
  */
@@ -34,18 +34,19 @@ export function HeroGlow() {
 }
 
 /**
- * The Financial hero's cloud photo (50%, cover, centred), filling the top of the page down to
- * the scene's top dotted rule and fading out exactly there, so every cloud sits above that line
- * and the wash carries on alone below it. Sideways it stays full inside the dotted rails and all
- * but vanishes in the margins beyond them (see .hero-clouds). It sits over the wash and
- * under the dotted rails (one layer up). Place it inside a `relative` wrapper around the hero
- * section; it reaches up behind the header too. Light mode only.
+ * The hero's landscape (snow peaks over misty ridges), filling the top of the page down to the
+ * scene's top dotted rule. It stays between the dotted rails: full across the middle, fading to
+ * nothing at each rail, and fading out at the bottom just before that rule, so the wash carries on
+ * alone below (see .hero-landscape). Anchored to the bottom so the ridges stay in view; the empty
+ * sky is what gets cropped. It sits over the wash and under the rails (one layer up). Place it
+ * inside a `relative` wrapper around the hero section, within the content column; it reaches up
+ * behind the header too. Light mode only.
  */
-export function HeroClouds() {
+export function HeroLandscape() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute -top-28 bottom-0 left-1/2 -z-10 w-screen -translate-x-1/2 hero-clouds bg-[url('/backgrounds/clouds.webp')] bg-cover bg-center opacity-50 select-none dark:hidden"
+      className="hero-landscape pointer-events-none absolute -inset-x-4 -top-28 bottom-0 -z-10 bg-[url('/backgrounds/hero-landscape.webp')] bg-cover bg-bottom opacity-60 select-none sm:-inset-x-3 dark:hidden"
     />
   );
 }

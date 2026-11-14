@@ -3,7 +3,7 @@ import { AnimatePresence, motion, usePresence, useReducedMotion, type HTMLMotion
 import { useEffect, useState } from 'react';
 import { LIMITS } from '@triptinker/contracts';
 import { COLUMN, GuideLine, GuideRails } from '@/components/site/guides';
-import { HeroClouds, HeroGlow } from '@/components/site/hero-glow';
+import { HeroGlow, HeroLandscape } from '@/components/site/hero-glow';
 import { SiteHeader } from '@/components/site/site-header';
 import { ThemeToggle } from '@/components/site/theme-toggle';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -105,9 +105,9 @@ export function PlannerPage() {
       </SiteHeader>
 
       <main className={cn(COLUMN, 'flex-1')}>
-        {/* Hero, under the clouds: they fill this band and fade out at the scene's top rule (light mode). */}
+        {/* Hero, over the landscape: it fills this band between the rails and fades out at the scene's top rule (light mode). */}
         <div className="relative">
-        <HeroClouds />
+        <HeroLandscape />
         <section aria-labelledby="hero-title" className="flex flex-col items-center gap-6 pt-8 pb-10 text-center sm:pt-10 md:pb-12">
           <div className="flex flex-col gap-4">
             <h1 id="hero-title" className="font-display text-[clamp(1.5rem,calc((100vw-2rem)*0.1),2.625rem)] leading-[1.06] text-ink-strong sm:text-[56px] lg:text-[68px] lg:leading-[1.06]">
