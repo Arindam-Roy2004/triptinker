@@ -20,7 +20,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
   render() {
     if (!this.state.error) return this.props.children;
     return (
-      <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-4 px-6">
+      <div className="mx-auto flex min-h-svh max-w-md flex-col justify-center gap-4 px-6">
         <h1 className="font-display text-4xl">Something went wrong.</h1>
         <p className="text-muted">Try reloading. If that doesn't help, reset this trip. Your saved trips will stay.</p>
         <div className="flex gap-2">

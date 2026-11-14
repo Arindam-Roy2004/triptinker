@@ -186,9 +186,10 @@ export function normalizeItinerary(value: unknown, { newId, knownIds }: Options)
     ? trip.notes.map((n) => str(n, LIMITS.noteMax)).filter((n): n is string => n !== null).slice(0, LIMITS.maxNotes)
     : [];
 
+  const destination = str(trip.destination, LIMITS.destinationMax) ?? 'Somewhere';
   const candidate: Itinerary = {
-    title: str(trip.title, LIMITS.titleMax) ?? 'Untitled trip',
-    destination: str(trip.destination, LIMITS.destinationMax) ?? 'Somewhere',
+    title: tripTitle(str(trip.title, LIMITS.titleMax), days.length, destination),
+    destination,
     summary: str(trip.summary, LIMITS.summaryMax) ?? '',
     days,
     notes,
@@ -201,6 +202,15 @@ export function normalizeItinerary(value: unknown, { newId, knownIds }: Options)
 }
 
 /** Cheap progress estimate from partial JSON, for the live status. Never used as data. */
+/** Past this a "title" is a sentence (models sometimes echo the whole brief), too long for a heading. */
+const TITLE_SOFT_MAX = 70;
+
+function tripTitle(title: string | null, days: number, destination: string): string {
+  if (title && title.length <= TITLE_SOFT_MAX) return title;
+  const place = destination.split(',')[0].trim() || destination;
+  return days > 0 ? `${days === 1 ? 'A day' : `${days} days`} in ${place}` : (title ?? 'Untitled trip');
+}
+
 export function estimateProgress(partial: string) {
   // Only days have a "stops" key and only stops have a "category" key (see the prompt schema).
   return {

@@ -160,13 +160,13 @@ function DayGlance({ day }: { day: Day }) {
   );
 }
 
-function IconButton({ label, description, shortcut, onClick, disabled, children }: { label: string; description: string; shortcut?: string; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
+function IconButton({ label, description, shortcut, onClick, disabled, compact, children }: { label: string; description: string; shortcut?: string; onClick: () => void; disabled?: boolean; /** Icon only on narrow phones, so the row doesn't wrap mid-group. */ compact?: boolean; children: React.ReactNode }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <span className="inline-flex">
           <Button size="sm" variant="secondary" onClick={onClick} disabled={disabled} aria-label={label}>
-            {children} {label}
+            {children} <span className={cn(compact && 'hidden min-[375px]:inline')}>{label}</span>
           </Button>
         </span>
       </TooltipTrigger>
@@ -319,10 +319,10 @@ export function ResultSection(props: Props) {
               <Plus />
             </IconButton>
           </span>
-          <IconButton label="Undo" description={props.canUndo ? 'Undo last change' : 'No changes to undo'} shortcut="⌘Z" onClick={props.onUndo} disabled={locked || !props.canUndo}>
+          <IconButton label="Undo" description={props.canUndo ? 'Undo last change' : 'No changes to undo'} shortcut="⌘Z" onClick={props.onUndo} disabled={locked || !props.canUndo} compact>
             <ArrowCounterClockwise />
           </IconButton>
-          <IconButton label="Redo" description={props.canRedo ? 'Redo last undone change' : 'No changes to redo'} shortcut="⇧⌘Z" onClick={props.onRedo} disabled={locked || !props.canRedo}>
+          <IconButton label="Redo" description={props.canRedo ? 'Redo last undone change' : 'No changes to redo'} shortcut="⇧⌘Z" onClick={props.onRedo} disabled={locked || !props.canRedo} compact>
             <ArrowClockwise />
           </IconButton>
           <DownloadMenu onExport={props.onExport} />

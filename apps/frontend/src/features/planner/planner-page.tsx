@@ -88,7 +88,7 @@ export function PlannerPage() {
   const generateStatus = runStatus('generate');
 
   return (
-    <div className="relative isolate flex min-h-dvh flex-col overflow-x-clip">
+    <div className="relative isolate flex min-h-svh flex-col overflow-x-clip">
       <HeroGlow />
       <GuideRails />
       <SiteHeader>
@@ -252,7 +252,7 @@ export function PlannerPage() {
           there. Guide lines are hidden on phones, so there it keeps its own gap and rule. */}
       <footer className={cn(COLUMN, 'mt-16 sm:mt-0')}>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-edge py-8 text-[13px] text-muted sm:border-t-0">
-          <span>Check opening hours and bookings before you go.</span>
+          <span className="text-pretty">Check opening hours and bookings before you go.</span>
           {health?.simulation && <FailureLab value={simulate} onChange={setSimulate} />}
         </div>
       </footer>

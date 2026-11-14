@@ -33,23 +33,27 @@ export function SiteHeader({ children }: { children: ReactNode }) {
   // rubber-band bounce around one threshold can't make the bar flicker between states.
   useMotionValueEvent(scrollY, 'change', (y) => setScrolled((was) => (was ? y > 4 : y > 24)));
   return (
-    <header className="sticky top-0 z-40 px-3 pt-3">
+    // Its own compositing layer, so iOS Safari moves the bar with the scroll on the GPU instead of
+    // repositioning (and re-blurring) it on the main thread, which made it shake while scrolling.
+    <header className="sticky top-0 z-40 transform-gpu px-3 pt-3 will-change-transform">
       <motion.div
         initial={false}
         animate={{ maxWidth: scrolled ? 840 : 1128, borderRadius: scrolled ? 999 : 16 }}
         transition={reduce ? { duration: 0 } : HEADER_SPRING}
         className={cn(
           // At rest the bar is as wide as the page content, so the logo and tools sit on its edges.
-          'mx-auto flex h-16 items-center justify-between gap-4 border transition-[background-color,border-color,box-shadow,padding] duration-300',
+          'mx-auto flex h-16 items-center justify-between gap-2 border sm:gap-4 transition-[background-color,border-color,box-shadow,padding] duration-300',
           scrolled
-            ? 'border-[rgb(229_229_229/0.5)] bg-float/90 px-3 shadow-lg shadow-black/10 backdrop-blur-xl sm:px-4 dark:border-[rgb(64_64_64/0.5)] dark:shadow-black/30'
+            ? 'border-[rgb(229_229_229/0.5)] bg-float/90 px-3 shadow-lg shadow-black/10 backdrop-blur-lg sm:px-4 sm:backdrop-blur-xl dark:border-[rgb(64_64_64/0.5)] dark:shadow-black/30'
             : 'border-transparent bg-transparent px-[3px] sm:px-[11px]',
         )}
       >
-        <a href="/" aria-label="TripTinker, home" className="inline-flex h-12 shrink-0 items-center rounded-md">
+        {/* The tools never shrink and the logo may, so on a narrow phone (or iOS Display Zoom,
+            a 320px viewport) the last tool can't be pushed past the edge of the bar. */}
+        <a href="/" aria-label="TripTinker, home" className="inline-flex h-12 min-w-0 items-center overflow-hidden rounded-md">
           <Logo compact={scrolled} />
         </a>
-        <nav aria-label="Tools" className="flex items-center gap-1.5">
+        <nav aria-label="Tools" className="flex shrink-0 items-center gap-1.5">
           {children}
         </nav>
       </motion.div>

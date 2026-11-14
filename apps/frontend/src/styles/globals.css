@@ -368,7 +368,9 @@
   }
   body {
     @apply bg-bg font-sans text-ink antialiased;
-    min-height: 100dvh;
+    /* svh, not dvh: dvh follows iOS Safari's toolbar as it slides in and out during a scroll, so
+       the whole page re-laid itself out on every frame of it and the sticky header shook. */
+    min-height: 100svh;
     font-feature-settings: 'ss01', 'cv11';
   }
   :focus-visible {

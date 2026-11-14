@@ -48,6 +48,16 @@ describe('normalizeItinerary', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  it('replaces a title that is really the whole brief with a short one', () => {
+    const raw = modelOutput();
+    raw.itinerary.title = 'Three days in Rome for people who travel to eat: markets, trattorias, a cooking class, and one big sight a day.';
+    raw.itinerary.destination = 'Rome, Italy';
+    const result = normalizeItinerary(raw, options());
+    expect(result.ok).toBe(true);
+    if (result.ok !== true) return;
+    expect(result.itinerary.title).toBe('3 days in Rome');
+  });
+
   it('removes hidden formatting from model text but keeps joiners in emoji and scripts', () => {
     const raw = modelOutput();
     const stop = raw.itinerary.days[0].stops[0] as { title: string; tip: string | null };

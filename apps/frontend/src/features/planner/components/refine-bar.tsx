@@ -62,7 +62,7 @@ export function RefineBar(props: Props) {
   const reduce = useReducedMotion();
   const mode = props.pending ? 'review' : props.run ? 'running' : props.problem ? 'problem' : 'idle';
   return (
-    <div className="border-b border-line bg-tray px-6 py-4 last:border-b-0">
+    <div className="border-b border-line bg-tray px-4 py-4 last:border-b-0 sm:px-6">
       <div
         className={cn(
           'overflow-hidden rounded-xl bg-surface shadow-[0_0_0_1px_var(--edge-control),0_1px_2px_0_var(--edge-drop)] transition-[opacity,box-shadow] focus-within:shadow-[0_0_0_1px_var(--edge-hover),0_1px_2px_0_var(--edge-drop)]',
@@ -137,7 +137,7 @@ function Compose({ value, onChange, onSubmit, error, onClearError, disabled, inp
           onScroll={(e) => {
             if (mirrorRef.current) mirrorRef.current.scrollTop = e.currentTarget.scrollTop;
           }}
-          placeholder="Ask for a change to this plan…"
+          placeholder="Ask for a change…"
           className={cn(
             'hl-field relative block max-h-32 min-h-9 w-full resize-none bg-transparent py-[7px] text-base leading-[22px] text-ink outline-none [field-sizing:content] placeholder:truncate placeholder:text-subtle focus-visible:outline-none sm:text-[15px]',
             mirrored && 'no-scrollbar text-transparent caret-ink',
@@ -208,21 +208,29 @@ function useElapsed(since: number) {
 function Working({ run, instruction, onStop }: { run: Running; instruction: string; onStop: () => void }) {
   const elapsed = useElapsed(run.startedAt);
   return (
-    <div className="flex items-center gap-3 px-4 py-3" aria-live="polite">
-      <ThinkingMark />
+    // Two lines: what is happening and Stop, then the request and the clock. Side by side, the
+    // clock and Stop squeezed the status into a column one word wide on a phone.
+    <div className="flex items-start gap-3 px-4 py-3" aria-live="polite">
+      <span className="mt-px shrink-0">
+        <ThinkingMark />
+      </span>
       <div className="min-w-0 flex-1">
-        <Shimmer as="p" duration={1.8} className="text-[14px] font-medium">
-          {`${STAGE_TEXT[run.stage]}…`}
-        </Shimmer>
-        <p className="truncate text-[12px] leading-5 text-muted">“{instruction}”</p>
+        <div className="flex items-center gap-3">
+          <Shimmer as="p" duration={1.8} className="min-w-0 flex-1 truncate text-[14px] leading-5 font-medium">
+            {`${STAGE_TEXT[run.stage]}…`}
+          </Shimmer>
+          <AnimateIcon animateOnHover asChild>
+            <button type="button" onClick={onStop} className="group inline-flex shrink-0 items-center gap-1 text-[13px] text-muted transition-colors hover:text-ink">
+              <Cancel01 size={12} aria-hidden />
+              <span className="border-b border-dotted border-subtle transition-colors group-hover:border-ink">Stop</span>
+            </button>
+          </AnimateIcon>
+        </div>
+        <p className="flex items-baseline gap-3 text-[12px] leading-5">
+          <span className="min-w-0 flex-1 truncate text-muted">“{instruction}”</span>
+          <span className="tabular shrink-0 text-subtle">{formatElapsed(elapsed)}</span>
+        </p>
       </div>
-      <span className="tabular text-[12px] text-subtle">{formatElapsed(elapsed)}</span>
-      <AnimateIcon animateOnHover asChild>
-        <button type="button" onClick={onStop} className="group inline-flex items-center gap-1 text-[13px] text-muted transition-colors hover:text-ink">
-          <Cancel01 size={12} aria-hidden />
-          <span className="border-b border-dotted border-subtle transition-colors group-hover:border-ink">Stop</span>
-        </button>
-      </AnimateIcon>
     </div>
   );
 }

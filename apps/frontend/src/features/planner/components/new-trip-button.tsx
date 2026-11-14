@@ -12,7 +12,8 @@ export function NewTripButton({ onClick }: { onClick: () => void }) {
     <PixelDissolve>
       <Button variant="secondary" size="sm" onClick={onClick} aria-label="New trip">
         <Plus />
-        <span className="sm:hidden">New</span>
+        {/* Below 360px (small phones, iOS Display Zoom) the plus alone keeps the header on one row. */}
+        <span className="hidden min-[360px]:inline sm:hidden">New</span>
         <span className="hidden sm:inline">New trip</span>
       </Button>
     </PixelDissolve>

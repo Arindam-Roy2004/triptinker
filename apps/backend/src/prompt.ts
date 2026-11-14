@@ -7,7 +7,7 @@ export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: stri
 const SHAPE = `{
   "status": "ok",
   "itinerary": {
-    "title": string,            // evocative but short, e.g. "Four slow days in Lisbon"
+    "title": string,            // evocative but short (under 8 words), never the brief itself, e.g. "Four slow days in Lisbon"
     "destination": string,      // city or region
     "summary": string,          // 1–2 sentences
     "notes": string[],          // up to ${LIMITS.maxNotes} practical tips (transport passes, closures, bookings)

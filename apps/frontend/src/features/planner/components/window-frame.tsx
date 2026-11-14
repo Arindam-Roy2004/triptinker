@@ -5,13 +5,17 @@ import { cn } from '@/lib/utils';
 export function WindowFrame({ title, action, children, className, bodyClassName }: { title?: ReactNode; action?: ReactNode; children: ReactNode; className?: string; bodyClassName?: string }) {
   return (
     <div className={cn('lit-edge shadow-window-drop flex min-h-0 flex-col overflow-hidden rounded-xl', className)}>
-      <div className="flex h-10 shrink-0 items-center gap-3 border-b border-line bg-tray/70 px-3 shadow-[inset_0_1px_0_0_var(--lit-highlight)]">
+      <div className="@container flex h-10 shrink-0 items-center gap-3 border-b border-line bg-tray/70 px-3 shadow-[inset_0_1px_0_0_var(--lit-highlight)]">
         <span className="flex gap-1.5" aria-hidden>
           <span className="size-2.5 rounded-full bg-[#FF5F57] shadow-[inset_0_0_0_0.5px_rgb(0_0_0/0.12)]" />
           <span className="size-2.5 rounded-full bg-[#FEBC2E] shadow-[inset_0_0_0_0.5px_rgb(0_0_0/0.12)]" />
           <span className="size-2.5 rounded-full bg-[#28C840] shadow-[inset_0_0_0_0.5px_rgb(0_0_0/0.12)]" />
         </span>
-        <span className="label min-w-0 flex-1 truncate text-center text-[11px] text-muted">{title}</span>
+        {/* In a narrow window the title would truncate to one letter ("L…"), so it steps aside
+            and leaves the bar to the dots and the action. */}
+        <span className="label min-w-0 flex-1 truncate text-center text-[11px] text-muted">
+          <span className="hidden @min-[20rem]:inline">{title}</span>
+        </span>
         <span className="flex min-w-[42px] justify-end">{action}</span>
       </div>
       <div className={cn('min-h-0 flex-1', bodyClassName)}>{children}</div>

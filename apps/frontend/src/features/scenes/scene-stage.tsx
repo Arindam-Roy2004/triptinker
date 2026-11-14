@@ -287,7 +287,7 @@ export function SceneCaption({ scene, position, onPrev, onNext, className }: { s
       <p className="label truncate text-[11px]" aria-live="polite">
         {scene.name} <span className="text-muted">· {scene.place}</span>
       </p>
-      <span className="label tabular ml-1 text-[11px] text-subtle">
+      <span className="label tabular ml-1 shrink-0 text-[11px] whitespace-nowrap text-subtle">
         <SlidingNumber value={position.index + 1} pad={2} />/<SlidingNumber value={position.total} pad={2} />
       </span>
       <SceneArrow label="Previous scene" shortcut="←" keys="ArrowLeft" onClick={onPrev} className="ml-1">
