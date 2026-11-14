@@ -445,6 +445,15 @@
   .shadow-window-drop {
     box-shadow: var(--window-drop);
   }
+  /* Small mono caps for structural labels (Aceternity square-edges: CURRENT MEETING, [45MINS]). */
+  .spec-label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    line-height: 14px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
   /* Mainline's dotted frame: 2px dots every 8px along a 4px strip. */
   .dots-y {
     background-image: radial-gradient(circle at 2px 4px, var(--dot) 1px, transparent 1.25px);

@@ -1,4 +1,5 @@
 import { ArrowDown, ArrowUp, CalendarBlank, Clock, Lightbulb, MapPin, Trash } from '@phosphor-icons/react';
+import type { ReactNode } from 'react';
 import type { Day, Stop } from '@triptinker/contracts';
 import { Button } from '@/components/ui/button';
 import { WordsIn } from '@/components/ui/pulse-line';
@@ -38,20 +39,23 @@ export function StopDetail({ stop, index, count, dayId, days, destination, onMov
     <div role={compact ? undefined : 'region'} aria-label={compact ? undefined : 'Stop details'} className={cn('flex flex-col', !compact && 'max-h-[min(30rem,calc(100dvh-12rem))]')}>
       <div className={cn('flex min-h-0 flex-col gap-4', !compact && 'pane-scroll overflow-y-auto p-5')}>
         {!compact && (
-          <header className="flex flex-col gap-2.5">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-2 text-[12px] leading-5">
-              <span className="tabular mr-0.5 inline-flex items-center gap-1.5 rounded-md bg-sunken px-2 py-0.5 font-medium text-ink"><Clock size={12} aria-hidden />{formatTime(stop.time) ?? 'Any time'}</span>
-              <span className="inline-flex items-center gap-1.5" style={{ color: meta.color }}><meta.icon size={13} aria-hidden />{meta.label}</span>
-              {duration && (
-                <>
-                  <span aria-hidden className="text-subtle">·</span>
-                  <span className="tabular text-subtle">{duration}</span>
-                </>
-              )}
-            </div>
+          <header className="flex flex-col gap-2">
             <h3 className="text-[22px] leading-[1.25] font-medium tracking-[-0.02em] text-pretty text-ink-strong">{stop.title}</h3>
             {stop.area && <p className="flex items-center gap-1.5 text-[13px] leading-5 text-subtle"><MapPin size={13} className="shrink-0" aria-hidden />{stop.area}</p>}
           </header>
+        )}
+        {!compact && (
+          <dl className="grid grid-cols-3 divide-x divide-line border-y border-line">
+            <Spec label="Starts">
+              <Clock size={13} className="shrink-0 text-subtle" aria-hidden />
+              {formatTime(stop.time) ?? 'Any time'}
+            </Spec>
+            <Spec label="Kind">
+              <meta.icon size={13} className="shrink-0" style={{ color: meta.color }} aria-hidden />
+              {meta.label}
+            </Spec>
+            <Spec label="Lasts">{duration ?? 'Open'}</Spec>
+          </dl>
         )}
         {stop.description && (
           <p className="text-[14px] leading-[23px] text-muted">
@@ -59,13 +63,18 @@ export function StopDetail({ stop, index, count, dayId, days, destination, onMov
           </p>
         )}
         {stop.tip && (
-          <aside aria-label="Travel tip" className="mx-auto flex w-fit max-w-full flex-col items-center rounded-lg border border-line bg-tray px-5 py-3 text-center">
-            <p className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-brand"><Lightbulb size={13} aria-hidden />Good to know</p>
-            <p className="mt-1.5 max-w-[46ch] text-[13px] leading-[21px] text-pretty break-words text-muted">{stop.tip}</p>
+          <aside aria-label="Travel tip" className="lit-edge lit-inset overflow-hidden rounded-lg">
+            <div className="flex items-center justify-between gap-3 border-b border-line px-3.5 py-2">
+              <p className="spec-label text-muted">Good to know</p>
+              <span aria-hidden className="grid size-5 place-items-center rounded-[5px] bg-surface text-brand shadow-control">
+                <Lightbulb size={12} weight="bold" />
+              </span>
+            </div>
+            <p className="px-3.5 py-3 text-[13.5px] leading-[22px] text-pretty break-words text-ink">{stop.tip}</p>
           </aside>
         )}
       </div>
-      <footer className={cn('flex shrink-0 items-center justify-between gap-2', compact ? 'pt-3' : 'border-t border-line bg-tray px-5 py-3')}>
+      <footer className={cn('flex shrink-0 items-center justify-between gap-2', compact ? 'pt-3' : 'border-t border-line bg-tray px-5 py-3 shadow-[inset_0_1px_0_0_var(--lit-highlight)]')}>
         <Button asChild size={compact ? 'icon-sm' : 'sm'} variant="secondary">
           <a href={mapsSearchUrl(stop.title, destination, stop.area)} target="_blank" rel="noreferrer" aria-label={compact ? `Open ${stop.title} in Maps` : undefined}>
             <MapPin /> {!compact && 'Maps'}
@@ -103,6 +112,16 @@ export function StopDetail({ stop, index, count, dayId, days, destination, onMov
           </div>
         )}
       </footer>
+    </div>
+  );
+}
+
+/** One cell of the spec strip: a mono caps label over its value, divided from its neighbours by a hairline. */
+function Spec({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1 px-4 py-2.5 first:pl-0 last:pr-0">
+      <dt className="spec-label text-subtle">{label}</dt>
+      <dd className="tabular flex min-w-0 items-center gap-1.5 truncate text-[13px] leading-5 font-medium text-ink">{children}</dd>
     </div>
   );
 }
