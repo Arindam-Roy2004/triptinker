@@ -468,7 +468,6 @@ export function ResultSection(props: Props) {
                 >
                   <WindowFrame
                     title={`Day ${pad2(dayIndex + 1)} · stop ${pad2(current + 1)} of ${pad2(day.stops.length)}`}
-                    className="rounded-xl shadow-elevated"
                   >
                     <StopDetail
                       readOnly={locked}

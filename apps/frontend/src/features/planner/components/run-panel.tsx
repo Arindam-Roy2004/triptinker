@@ -134,7 +134,7 @@ export function RunPanel({ state, onCancel }: { state: Running; onCancel: () => 
 
       {/* Live preview / raw JSON */}
       <div role="region" aria-label="Live plan panel" className="relative min-w-0 lg:min-h-72">
-        <WindowFrame title={view === 'json' ? 'Trip data' : state.stage === 'validating' ? 'Checking plan' : 'Live plan'} action={<ViewToggle value={view} onChange={setView} />} className="h-[22rem] rounded-xl shadow-elevated lg:absolute lg:inset-0 lg:h-full" bodyClassName="overflow-hidden">
+        <WindowFrame title={view === 'json' ? 'Trip data' : state.stage === 'validating' ? 'Checking plan' : 'Live plan'} action={<ViewToggle value={view} onChange={setView} />} className="h-[22rem] lg:absolute lg:inset-0 lg:h-full" bodyClassName="overflow-hidden">
           <div className="h-full min-h-0">
             {view === 'preview' ? <LivePreview plan={plan} writing={state.stage === 'drafting' || state.stage === 'connecting'} /> : <RawJson raw={state.raw} />}
           </div>
