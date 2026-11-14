@@ -130,7 +130,7 @@ export function PlannerPage() {
 
         {/* Scene, prompt and status strip, framed by guide lines 12px off its edges */}
         <GuideLine frame="below" />
-        <div id="scene" className="scroll-mt-20 overflow-hidden rounded-md shadow-lift">
+        <div id="scene" className="shadow-bezel scroll-mt-20 overflow-hidden rounded-xl">
           {/* The card sits in the lower part of the scene, leaving the landmark visible above it. */}
           <SceneStage scene={scene.scene} transition={scene.transition} dim={generating} onReveal={setRevealed} className="flex min-h-[520px] flex-col items-center justify-end px-4 pt-36 pb-4 sm:pb-16 md:min-h-[540px] md:pb-20">
             <div className="relative z-10 flex w-full max-w-2xl flex-col items-center gap-2">
