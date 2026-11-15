@@ -4,6 +4,8 @@ Describe a trip in a sentence or two and get a day-by-day itinerary you can actu
 
 Live: https://triptinker.royarindam.page
 
+Demo video: [demo/triptinker-demo.mp4](demo/triptinker-demo.mp4) (about 2.5 minutes). It shows a real plan being generated, editing stops, asking the AI for a change, saving, and Test mode faking a bad model response. While the model is working the video is sped up, and a badge on screen says so.
+
 This is my submission for the Frontend Internship Assignment (trip planner). It is not a chatbot. The model never writes prose at the user. It returns JSON, the app checks that JSON against a schema, and the UI is built from the checked data.
 
 ## Run it
@@ -94,16 +96,14 @@ tests/e2e        Playwright, desktop and mobile
 
 ## Tests
 
-- 223 unit and API tests cover the contracts and their boundaries, saved-trip validation and clean-up of older saved trips, scene image loading, place and month highlighting in the trip box, JSON extraction and salvage, the repair pipeline, search, speech and the HTTP layer, including the failure cases above.
+- 224 unit and API tests cover the contracts and their boundaries, saved-trip validation and clean-up of older saved trips, scene image loading, place and month highlighting in the trip box, JSON extraction and salvage, the repair pipeline, search, speech and the HTTP layer, including the failure cases above.
 - 19 browser tests run on a desktop and a phone-sized viewport (two are desktop-only): sample editing and persistence, moving stops with undo and redo, scene preloading, transitions and arrow-key browsing, the failure scenarios, stop and retry, refinement review, and saved trips.
 
 ## AI usage
 
 I used AI throughout, and I want to be upfront about how much.
 
-- **Claude Code** wrote or helped write a large share of the code, including the UI polish, the loading panel, tests, and the deployment setup. I directed the work, reviewed it, and made the product decisions, but a lot of the typing was the assistant's.
-- The model inside the app (`qwen/qwen3.8-flash` through OpenRouter by default) generates the itineraries at runtime.
-- I also used AI to research how other component libraries handle loading and agent states. I took ideas, not code.
+- **Command Code** (in the terminal) with the **DeepSeek V4.1 Flash** model (`deepseek/deepseek-v4.1-flash-fast`) helped me build the first version: the project structure, schemas, server and main planner screens, and I iterated on that to create the current version. It also helped me write the README and this section.
 
 I can walk through the generation hook, the partial-JSON parser and the repair pipeline, which are the core of the project.
 
@@ -120,7 +120,7 @@ I can walk through the generation hook, the partial-JSON parser and the repair p
 
 ## Time spent
 
-TODO: fill in honestly before submitting.
+For the initial version I spent about 8 hours, then I improved the frontend and all security and error handling after that. All commits and changes are in the git history.
 
 ## What I would do next
 
