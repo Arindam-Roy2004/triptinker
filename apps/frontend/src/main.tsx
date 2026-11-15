@@ -7,10 +7,8 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { migrateStorageKeys } from './lib/keys';
-import { installTypingSound } from './lib/typing-sound';
 
 migrateStorageKeys();
-installTypingSound();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
