@@ -1,7 +1,7 @@
 import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app';
-import { createTranscriber, isWav } from '../src/stt';
+import { createTranscriber, isWav } from '../src/transcribe';
 
 const providerConfig = {
   apiKey: 'sk-secret-never-leaves',

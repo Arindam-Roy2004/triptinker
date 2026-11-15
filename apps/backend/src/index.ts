@@ -4,7 +4,7 @@ import express from 'express';
 import { createApp } from './app';
 import { config, isConfigured } from './config';
 import { createTavilySearch } from './search/tavily';
-import { createTranscriber } from './stt';
+import { createTranscriber } from './transcribe';
 
 // The frontend workspace: Vite serves it in development, its build is served in production.
 const root = path.resolve(import.meta.dirname, '../../frontend');

@@ -9,7 +9,7 @@ import { generationMessages, refinementMessages, type ChatMessage } from './prom
 import { createOpenAiProvider, type Provider } from './provider';
 import { searchQuery, type Search, type WebResult } from './search/tavily';
 import { SIMULATION_TIMEOUTS, createSimulatedProvider, simulatedSearch } from './simulate';
-import { MAX_AUDIO_BYTES, isWav, type Transcribe } from './stt';
+import { MAX_AUDIO_BYTES, isWav, type Transcribe } from './transcribe';
 
 export type AppOptions = {
   provider: ProviderConfig;

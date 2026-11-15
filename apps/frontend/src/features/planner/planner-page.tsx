@@ -20,7 +20,7 @@ import { RefineBar } from './components/refine-bar';
 import { ResultSection } from './components/result-section';
 import { RunPanel } from './components/run-panel';
 import { SampleToggle } from './components/sample-toggle';
-import { FeatureCells, ProblemCell, StoppedNote } from './components/strip-cells';
+import { FeatureCells, ProblemCell, StoppedNote } from './components/scene-strip';
 import { useCardButtonBelow } from './use-card-button-below';
 import { usePlanner } from './use-planner';
 

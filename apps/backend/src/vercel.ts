@@ -1,7 +1,7 @@
 import { createApp } from './app';
 import { config, isConfigured } from './config';
 import { createTavilySearch } from './search/tavily';
-import { createTranscriber } from './stt';
+import { createTranscriber } from './transcribe';
 
 /**
  * Entry for Vercel: the same Express app as the local server, exported as a request handler
