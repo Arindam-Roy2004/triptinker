@@ -8,8 +8,13 @@ import { cn } from '@/lib/utils';
  * content, and left out on phones where the column touches the screen edge.
  */
 
-/** The page's content column. The rails track this box, so anything laid out in it lines up with them. */
-export const COLUMN = 'mx-auto w-full max-w-[1104px] px-4 sm:px-6 xl:px-0';
+/**
+ * The page's content column. The rails track this box, so anything laid out in it lines up with them.
+ * Its content is min(viewport − gutters, 1104px) at every width: the max width includes the side
+ * padding, so the column never narrows while padding remains (as it did between 1152 and 1280px,
+ * leaving the header's logo and tools outside the rails).
+ */
+export const COLUMN = 'mx-auto w-full max-w-[calc(1104px+2rem)] px-4 sm:max-w-[calc(1104px+3rem)] sm:px-6';
 
 /** How far the rails sit outside the column, and how far a framing rule sits off a card: 12px. */
 const OUTSET = 12;
