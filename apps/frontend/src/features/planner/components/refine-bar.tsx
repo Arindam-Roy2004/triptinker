@@ -6,6 +6,7 @@ import { AnimateIcon } from '@animate-ui/react/icons';
 import { Cancel01 } from '@/components/animate-ui/icons/hugeicons/cancel-01';
 import { Shimmer } from '@/components/ai/shimmer';
 import { Button } from '@/components/ui/button';
+import { fadeBeside, useMoreBeside } from '@/hooks/use-more-beside';
 import { formatElapsed } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { ItineraryDiff } from '../diff';
@@ -93,6 +94,7 @@ function Compose({ value, onChange, onSubmit, error, onClearError, disabled, inp
   const [focused, setFocused] = useState(false);
   const [composing, setComposing] = useState(false);
   const mirrorRef = useRef<HTMLDivElement>(null);
+  const [chipRow, chipsLeft, chipsRight] = useMoreBeside<HTMLDivElement>();
   const mirrored = !!value && !composing;
   const tooShort = value.trim().length < LIMITS.instructionMin;
   const send = (text: string) => !disabled && onSubmit(text);
@@ -175,7 +177,8 @@ function Compose({ value, onChange, onSubmit, error, onClearError, disabled, inp
         !value &&
         !focused && (
           <div className="flex items-center gap-3 pr-3 pb-2.5">
-            <div className="no-scrollbar flex min-w-0 flex-1 gap-1.5 overflow-x-auto pl-4" aria-label="Suggested changes">
+            {/* On a phone the chips run past the card's edge: fade them out there instead of slicing one. */}
+            <div ref={chipRow} style={fadeBeside(chipsLeft, chipsRight)} className="no-scrollbar flex min-w-0 flex-1 gap-1.5 overflow-x-auto pl-4" aria-label="Suggested changes">
               {SUGGESTIONS.map((s) => (
                 <button
                   key={s}

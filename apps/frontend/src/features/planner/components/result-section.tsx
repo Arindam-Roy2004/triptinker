@@ -3,7 +3,7 @@ import { AnimateIcon } from '@animate-ui/react/icons';
 import { Cancel01 } from '@/components/animate-ui/icons/hugeicons/cancel-01';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { motion, useReducedMotion } from 'motion/react';
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { Category, Day, Stop } from '@triptinker/contracts';
 import { ShimmerLabel } from '@/components/ai/shimmer';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { PulseLine, WordsIn } from '@/components/ui/pulse-line';
 import { Reveal } from '@/components/ui/reveal';
 import { SlidingNumber } from '@/components/ui/sliding-number';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { fadeBeside, useMoreBeside } from '@/hooks/use-more-beside';
 import { formatDuration, formatTime, pad2 } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { CATEGORY_META } from '../categories';
@@ -240,7 +241,15 @@ export function ResultSection(props: Props) {
   // place is shown next, rather than jumping back to the top of the day.
   const [anchor, setAnchor] = useState(0);
   const desktop = useMediaQuery('(min-width: 1024px)');
-  const dayStrip = useRef<HTMLDivElement>(null);
+  const dayStrip = useRef<HTMLDivElement | null>(null);
+  const [observeDays, daysLeft, daysRight] = useMoreBeside<HTMLDivElement>();
+  const dayStripRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      dayStrip.current = el;
+      observeDays(el);
+    },
+    [observeDays],
+  );
 
   const dayIndex = Math.max(
     0,
@@ -342,7 +351,8 @@ export function ResultSection(props: Props) {
 
       {/* Days */}
       <div
-        ref={dayStrip}
+        ref={dayStripRef}
+        style={fadeBeside(daysLeft, daysRight)}
         role="tablist"
         aria-label="Days"
         onKeyDown={(e) =>
@@ -369,7 +379,8 @@ export function ResultSection(props: Props) {
             }}
             className={cn(
               'group relative flex flex-1 flex-col items-start gap-2 overflow-hidden border-r border-line px-6 py-4 text-left outline-offset-[-2px] transition-colors last:border-r-0',
-              marked?.perDay[i] ? 'min-w-60' : 'min-w-44',
+              // On a phone two tabs leave a clear peek of the next (not a 6px sliver), so the row reads as scrollable.
+              marked?.perDay[i] ? 'min-w-60' : 'min-w-[calc((100%-2.75rem)/2)] sm:min-w-44',
               d.id !== day.id && 'hover:bg-sunken/60',
             )}
           >
