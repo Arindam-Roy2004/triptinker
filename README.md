@@ -4,7 +4,8 @@ Describe a trip in a sentence or two and get a day-by-day itinerary you can actu
 
 Live: https://triptinker.royarindam.page
 
-Demo video: [demo/triptinker-demo.mp4](demo/triptinker-demo.mp4) (about 2.5 minutes). It shows a real plan being generated, editing stops, asking the AI for a change, saving, and Test mode faking a bad model response. While the model is working the video is sped up, and a badge on screen says so.
+Demo video:[triptinker-demo.webm](https://github.com/user-attachments/assets/972debad-3591-4f55-b045-34d9f903d04c)
+ (about 2.5 minutes). It shows a real plan being generated, editing stops, asking the AI for a change, saving, and Test mode faking a bad model response. While the model is working the video is sped up, and a badge on screen says so.
 
 This is my submission for the Frontend Internship Assignment (trip planner). It is not a chatbot. The model never writes prose at the user. It returns JSON, the app checks that JSON against a schema, and the UI is built from the checked data.
 
