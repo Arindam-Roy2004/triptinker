@@ -105,7 +105,7 @@ tests/e2e        Playwright, desktop and mobile
 
 ## AI usage
 
-I used AI throughout, and I want to be upfront about how much.
+I used AI and I want to be upfront about how much.
 
 - **Command Code** (in the terminal) with the **DeepSeek V4.1 Flash** model (`deepseek/deepseek-v4.1-flash-fast`) helped me build the first version: the project structure, schemas, server and main planner screens, and I iterated on that to create the current version. It also helped me write the README and this section.
 
