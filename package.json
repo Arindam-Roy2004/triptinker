@@ -20,6 +20,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "og": "node scripts/og-image.mjs",
     "deploy": "node scripts/build-vercel.mjs && vercel deploy --prebuilt --prod"
   },
   "devDependencies": {
